@@ -181,9 +181,24 @@ export default function HoroscopeApp() {
           ) : horoscope ? (
             <div className="space-y-4">
               <div className="h-1 w-24 mx-auto bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 rounded-full mb-6"></div>
-              <p className="text-lg leading-relaxed text-purple-50 whitespace-pre-line">
-                {horoscope}
-              </p>
+              <div className="text-lg leading-relaxed text-purple-50 whitespace-pre-line space-y-4">
+                {horoscope.split('\n\n').map((paragraph, index) => (
+                  <p key={index} className="mb-4 last:mb-0">
+                    {paragraph.split('\n').map((line, lineIndex) => (
+                      <span key={lineIndex}>
+                        {line.startsWith('**') && line.endsWith('**') ? (
+                          <strong className="block text-yellow-300 text-xl mb-2 mt-4">
+                            {line.replace(/\*\*/g, '')}
+                          </strong>
+                        ) : (
+                          line
+                        )}
+                        {lineIndex < paragraph.split('\n').length - 1 && <br />}
+                      </span>
+                    ))}
+                  </p>
+                ))}
+              </div>
               <div className="h-1 w-24 mx-auto bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 rounded-full mt-6"></div>
             </div>
           ) : null}
