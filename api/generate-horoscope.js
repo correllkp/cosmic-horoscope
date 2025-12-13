@@ -21,41 +21,94 @@ export default async function handler(req, res) {
     const prompts = {
       daily: {
         content: `Generate a detailed, mystical daily horoscope for ${sign.name} (${sign.dates}) for ${today}.
-        
-        Include predictions about:
-        - Love and relationships
-        - Career and finances
-        - Health and wellness
-        - Lucky numbers and colors
-        
-        Make it engaging, positive yet realistic, and written in a mystical, encouraging tone. Keep it between 150-200 words.`
+
+Format with clear sections using this EXACT structure with line breaks:
+
+**Love & Relationships:**
+[2-3 sentences about love, romance, and connections]
+
+**Career & Finances:**
+[2-3 sentences about work opportunities and money matters]
+
+**Health & Wellness:**
+[2-3 sentences about physical and mental well-being]
+
+**Cosmic Guidance:**
+[1-2 sentences of mystical advice for the day]
+
+**Lucky Elements:**
+Numbers: [3 numbers]
+Color: [1 color]
+
+Important: Put each section header on its own line, followed by the content. Use blank lines between sections.
+
+Make it engaging, positive yet realistic, and written in a mystical, encouraging tone. Keep it between 150-200 words total.`
       },
       weekly: {
         content: `Generate a detailed, mystical weekly horoscope for ${sign.name} (${sign.dates}) for the week starting ${today}.
-        
-        Provide an overview of the week ahead with predictions for:
-        - Love and relationships throughout the week
-        - Career opportunities and challenges
-        - Financial outlook
-        - Health and wellness focus
-        - Key days to watch (lucky days)
-        - Weekly lucky numbers and colors
-        
-        Make it engaging, insightful, positive yet realistic, and written in a mystical, encouraging tone. Keep it between 250-300 words.`
+
+Format with clear sections using this EXACT structure with line breaks:
+
+**Week Overview:**
+[2-3 sentences setting the tone for the week ahead]
+
+**Love & Relationships:**
+[3-4 sentences about romantic developments throughout the week]
+
+**Career & Professional Growth:**
+[3-4 sentences about work opportunities and challenges]
+
+**Financial Outlook:**
+[2-3 sentences about money matters and financial decisions]
+
+**Health & Wellness:**
+[2-3 sentences about physical and mental well-being focus]
+
+**Key Days to Watch:**
+[List 2-3 specific days with brief notes]
+
+**Weekly Lucky Elements:**
+Numbers: [3-4 numbers]
+Colors: [2 colors]
+
+Important: Put each section header on its own line, followed by the content. Use blank lines between sections.
+
+Make it engaging, insightful, positive yet realistic, and written in a mystical, encouraging tone. Keep it between 250-300 words total.`
       },
       monthly: {
         content: `Generate a comprehensive, mystical monthly horoscope for ${sign.name} (${sign.dates}) for ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
-        
-        Provide an in-depth analysis of the month ahead with predictions for:
-        - Love and relationships: Major themes and developments
-        - Career and professional growth: Opportunities and warnings
-        - Financial outlook: Income, spending, investments
-        - Health and wellness: Physical and mental focus areas
-        - Personal growth and spiritual development
-        - Key dates and important planetary influences
-        - Monthly lucky numbers, colors, and gemstones
-        
-        Make it comprehensive, insightful, positive yet realistic, and written in a mystical, encouraging tone with astrological depth. Keep it between 350-400 words.`
+
+Format with clear sections using this EXACT structure with line breaks:
+
+**Monthly Overview:**
+[3-4 sentences setting the cosmic tone for the entire month]
+
+**Love & Relationships:**
+[4-5 sentences about major romantic themes and developments]
+
+**Career & Professional Growth:**
+[4-5 sentences about work opportunities, challenges, and advancement]
+
+**Financial Outlook:**
+[3-4 sentences about income, spending, and investment guidance]
+
+**Health & Wellness:**
+[3-4 sentences about physical and mental health focus areas]
+
+**Personal Growth & Spirituality:**
+[3-4 sentences about inner development and spiritual themes]
+
+**Key Dates & Planetary Influences:**
+[List 3-4 important dates with brief cosmic explanations]
+
+**Monthly Lucky Elements:**
+Numbers: [4-5 numbers]
+Colors: [2-3 colors]
+Gemstone: [1 gemstone]
+
+Important: Put each section header on its own line, followed by the content. Use blank lines between sections.
+
+Make it comprehensive, insightful, positive yet realistic, and written in a mystical, encouraging tone with astrological depth. Keep it between 350-400 words total.`
       }
     };
 

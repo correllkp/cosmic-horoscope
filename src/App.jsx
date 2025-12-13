@@ -181,23 +181,30 @@ export default function HoroscopeApp() {
           ) : horoscope ? (
             <div className="space-y-4">
               <div className="h-1 w-24 mx-auto bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 rounded-full mb-6"></div>
-              <div className="text-lg leading-relaxed text-purple-50 whitespace-pre-line space-y-4">
-                {horoscope.split('\n\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4 last:mb-0">
-                    {paragraph.split('\n').map((line, lineIndex) => (
-                      <span key={lineIndex}>
-                        {line.startsWith('**') && line.endsWith('**') ? (
-                          <strong className="block text-yellow-300 text-xl mb-2 mt-4">
-                            {line.replace(/\*\*/g, '')}
-                          </strong>
-                        ) : (
-                          line
-                        )}
-                        {lineIndex < paragraph.split('\n').length - 1 && <br />}
-                      </span>
-                    ))}
-                  </p>
-                ))}
+              <div className="text-lg leading-relaxed text-purple-50">
+                {horoscope.split('\n').map((line, index) => {
+                  // Check if line contains bold markdown (headers)
+                  if (line.includes('**')) {
+                    const headerMatch = line.match(/\*\*([^*]+)\*\*/);
+                    if (headerMatch) {
+                      return (
+                        <h3 key={index} className="text-yellow-300 text-xl font-bold mb-3 mt-6 first:mt-0">
+                          {headerMatch[1]}
+                        </h3>
+                      );
+                    }
+                  }
+                  // Regular paragraph text
+                  if (line.trim()) {
+                    return (
+                      <p key={index} className="mb-4 leading-relaxed">
+                        {line}
+                      </p>
+                    );
+                  }
+                  // Empty line for spacing
+                  return <div key={index} className="h-2"></div>;
+                })}
               </div>
               <div className="h-1 w-24 mx-auto bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 rounded-full mt-6"></div>
             </div>
