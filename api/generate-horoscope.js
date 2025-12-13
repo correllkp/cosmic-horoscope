@@ -174,7 +174,7 @@ Make it comprehensive, mystical, and deeply inspiring for inventors. 350-400 wor
           temperature: 0.9,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,  // Increased from 1024 to handle longer responses
         }
       })
     });
