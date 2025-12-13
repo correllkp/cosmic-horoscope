@@ -1,3 +1,13 @@
+// Simple in-memory cache (resets on each deployment)
+const horoscopeCache = new Map();
+
+// Cache duration: Daily horoscopes cache for 24 hours, Weekly for 7 days, Monthly for 30 days
+const CACHE_DURATION = {
+  daily: 24 * 60 * 60 * 1000,    // 24 hours
+  weekly: 7 * 24 * 60 * 60 * 1000,  // 7 days
+  monthly: 30 * 24 * 60 * 60 * 1000  // 30 days
+};
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -9,6 +19,20 @@ export default async function handler(req, res) {
 
     if (!sign || !timeframe) {
       return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    // Create cache key based on sign, timeframe, and current date
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const cacheKey = `${sign.name}-${timeframe}-${today}`;
+    
+    // Check if we have a cached version
+    const cached = horoscopeCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_DURATION[timeframe])) {
+      console.log(`Serving cached horoscope for ${cacheKey}`);
+      return res.status(200).json({ 
+        horoscope: cached.content,
+        cached: true 
+      });
     }
 
     const today = new Date().toLocaleDateString('en-US', { 
@@ -133,7 +157,7 @@ Make it comprehensive, mystical, and deeply inspiring for inventors. 350-400 wor
       });
     }
 
-    // Use Google Gemini API (v1 endpoint)
+    // Use Google Gemini API - Using 2.5 Flash (newest stable model)
     const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -155,12 +179,32 @@ Make it comprehensive, mystical, and deeply inspiring for inventors. 350-400 wor
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API error:', errorData);
-      return res.status(response.status).json({ 
-        error: 'Failed to generate horoscope',
-        details: errorData 
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Gemini API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        sign: sign.name,
+        timeframe
       });
+      
+      // Return specific error based on status code
+      if (response.status === 429) {
+        return res.status(429).json({ 
+          error: 'Rate limit exceeded. Please wait before making more requests.',
+          details: 'Gemini API rate limit (15 requests per minute)'
+        });
+      } else if (response.status === 401 || response.status === 403) {
+        return res.status(response.status).json({ 
+          error: 'API authentication failed',
+          details: 'Check GEMINI_API_KEY environment variable'
+        });
+      } else {
+        return res.status(response.status).json({ 
+          error: 'Failed to generate horoscope',
+          details: errorData 
+        });
+      }
     }
 
     const data = await response.json();
@@ -176,7 +220,18 @@ Make it comprehensive, mystical, and deeply inspiring for inventors. 350-400 wor
       .map(part => part.text)
       .join('\n');
 
-    return res.status(200).json({ horoscope: horoscopeText });
+    // Cache the generated horoscope
+    horoscopeCache.set(cacheKey, {
+      content: horoscopeText,
+      timestamp: Date.now()
+    });
+    
+    console.log(`Generated and cached new horoscope for ${cacheKey}`);
+
+    return res.status(200).json({ 
+      horoscope: horoscopeText,
+      cached: false 
+    });
 
   } catch (error) {
     console.error('Error in horoscope API:', error);
