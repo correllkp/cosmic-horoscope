@@ -66,34 +66,38 @@ export default async function handler(req, res) {
     }
 
     // Get API key from environment variable
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return res.status(500).json({ 
-        error: 'API key not configured. Please add ANTHROPIC_API_KEY to your Vercel environment variables.' 
+        error: 'API key not configured. Please add GEMINI_API_KEY to your Vercel environment variables.' 
       });
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Use Google Gemini API
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: selectedPrompt.content
-        }]
+        contents: [{
+          parts: [{
+            text: selectedPrompt.content
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.9,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Claude API error:', errorData);
+      console.error('Gemini API error:', errorData);
       return res.status(response.status).json({ 
         error: 'Failed to generate horoscope',
         details: errorData 
@@ -101,9 +105,16 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const horoscopeText = data.content
-      .filter(item => item.type === 'text')
-      .map(item => item.text)
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      console.error('Unexpected Gemini response:', data);
+      return res.status(500).json({ 
+        error: 'Unexpected response from AI service' 
+      });
+    }
+
+    const horoscopeText = data.candidates[0].content.parts
+      .map(part => part.text)
       .join('\n');
 
     return res.status(200).json({ horoscope: horoscopeText });
