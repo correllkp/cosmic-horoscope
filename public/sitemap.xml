@@ -1,72 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Homepage -->
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/</loc>
-    <lastmod>2025-12-13</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  
-  <!-- Zodiac Sign Pages - Update these if you add individual sign pages -->
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#aries</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#taurus</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#gemini</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#cancer</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#leo</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#virgo</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#libra</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#scorpio</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#sagittarius</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#capricorn</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#aquarius</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cosmic-horoscope.vercel.app/#pisces</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
+<url>
+<loc>https://cosmic-horoscope.vercel.app/</loc>
+<lastmod>2025-12-13</lastmod>
+<changefreq>daily</changefreq>
+<priority>1.0</priority>
+</url>
 </urlset>
