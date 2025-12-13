@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     }
 
     // Create cache key based on sign, timeframe, and current date
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const cacheKey = `${sign.name}-${timeframe}-${today}`;
+    const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const cacheKey = `${sign.name}-${timeframe}-${todayDate}`;
     
     // Check if we have a cached version
     const cached = horoscopeCache.get(cacheKey);
@@ -35,6 +35,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Format today's date for the prompt
     const today = new Date().toLocaleDateString('en-US', { 
       weekday: 'long', 
       year: 'numeric', 
