@@ -45,12 +45,32 @@ export default function HoroscopeApp() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate horoscope');
+        // Show specific error based on status code
+        if (response.status === 429) {
+          throw new Error('Rate limit reached. Please wait a moment before trying again.');
+        } else if (response.status === 401 || response.status === 403) {
+          throw new Error('API authentication issue. Please contact support.');
+        } else {
+          throw new Error(data.error || 'Failed to generate horoscope');
+        }
       }
       
       setHoroscope(data.horoscope);
     } catch (error) {
-      setHoroscope('The cosmic energies are currently unavailable. Please try again in a moment.');
+      // Show user-friendly error message
+      let errorMessage = 'The cosmic energies are currently unavailable. ';
+      
+      if (error.message.includes('Rate limit')) {
+        errorMessage = '⏳ Too many requests! The stars need a moment to realign. Please wait 30 seconds and try again.';
+      } else if (error.message.includes('authentication')) {
+        errorMessage = '🔑 API configuration issue. Please contact the site administrator.';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = '🌐 Network connection issue. Please check your internet and try again.';
+      } else {
+        errorMessage = '✨ The cosmic energies are currently unavailable. Please try again in a moment.';
+      }
+      
+      setHoroscope(errorMessage);
       console.error('Error generating horoscope:', error);
     } finally {
       setLoading(false);
