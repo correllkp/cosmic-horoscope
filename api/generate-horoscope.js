@@ -66,8 +66,7 @@ Write 2-3 sentences. Include both strategic opportunities AND warnings about rus
 Write 1-2 sentences of mystical advice - include both what to embrace AND what to avoid today.
 
 **Lucky Elements:**
-Numbers: 3, 7, 21
-Color: Emerald Green
+Generate unique lucky numbers (3 different numbers between 1-99) and a lucky color that matches this zodiac sign's energy and element.
 
 DO NOT write this as a flowing paragraph. Each section header MUST be on its own line followed by the content on the next line. Use a blank line between each section.
 
@@ -98,11 +97,10 @@ Write 2-3 sentences about licensing deals, finding manufacturers, investor meeti
 Write 2-3 sentences about staying focused, overcoming setbacks, maintaining creative flow, or work-life balance. Include warnings about burnout, distractions, or self-doubt.
 
 **Key Days:**
-Monday - breakthrough moment, Wednesday - watch for obstacles, Friday - strategic planning but avoid rushed decisions
+Identify 3 specific days this week with brief mystical notes about each (one favorable, one challenging, one neutral).
 
 **Weekly Lucky Elements:**
-Numbers: 5, 12, 18, 25
-Colors: Azure Blue, Rose Gold
+Generate unique lucky numbers (4 different numbers between 1-99) and 2 lucky colors that resonate with this zodiac sign's energy and element.
 
 DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
 
@@ -136,12 +134,10 @@ Write 3-4 sentences about long-term vision, competitive analysis, market positio
 Write 3-4 sentences about mental resilience, creative confidence, work-life integration, or networking. Include warnings about burnout, isolation, imposter syndrome, or loss of motivation during difficult periods.
 
 **Key Dates:**
-Dec 15 - patent milestone but expect delays, Dec 22 - investor opportunity (prepare for tough questions), Dec 28 - strategic breakthrough after overcoming setback
+Identify 3-4 important dates this month with specific mystical guidance for each (mix of opportunities and challenges).
 
 **Monthly Lucky Elements:**
-Numbers: 2, 9, 14, 21, 28
-Colors: Midnight Blue, Silver, Coral
-Gemstone: Amethyst
+Generate unique lucky numbers (5 different numbers between 1-99), 2-3 lucky colors, and 1 lucky gemstone that align with this zodiac sign's energy and element.
 
 DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
 
