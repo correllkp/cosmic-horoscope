@@ -64,13 +64,13 @@ export default function HoroscopeApp() {
         <div className="flex items-center justify-center gap-3 mb-4">
           <Moon className="w-8 h-8 text-yellow-300" />
           <h1 className="text-5xl font-bold bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
-            Cosmic Daily Horoscope
+            Cosmic Inventor's Horoscope
           </h1>
           <Sun className="w-8 h-8 text-yellow-300" />
         </div>
         <p className="text-purple-200 text-lg flex items-center justify-center gap-2">
           <Star className="w-4 h-4" />
-          Discover what the stars have aligned for you today
+          Discover what the stars have aligned for your inventions today
           <Star className="w-4 h-4" />
         </p>
         <p className="text-purple-300 mt-2">
@@ -122,9 +122,9 @@ export default function HoroscopeApp() {
           </button>
         </div>
         <p className="text-center text-purple-300 text-sm mt-3">
-          {timeframe === 'daily' && 'Get your cosmic guidance for today'}
-          {timeframe === 'weekly' && 'Explore the week ahead with celestial insights'}
-          {timeframe === 'monthly' && 'Unlock the mysteries of the entire month'}
+          {timeframe === 'daily' && 'Get your cosmic innovation guidance for today'}
+          {timeframe === 'weekly' && 'Explore the week ahead for your inventions'}
+          {timeframe === 'monthly' && 'Unlock your invention potential this month'}
         </p>
       </div>
 
@@ -176,7 +176,7 @@ export default function HoroscopeApp() {
               <div className="inline-block animate-spin mb-4">
                 <Sparkles className="w-12 h-12 text-yellow-300" />
               </div>
-              <p className="text-purple-200">Consulting the cosmic energies...</p>
+              <p className="text-purple-200">Channeling cosmic innovation energies...</p>
             </div>
           ) : horoscope ? (
             <div className="space-y-4">

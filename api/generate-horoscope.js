@@ -20,95 +20,101 @@ export default async function handler(req, res) {
 
     const prompts = {
       daily: {
-        content: `Generate a detailed, mystical daily horoscope for ${sign.name} (${sign.dates}) for ${today}.
+        content: `You are generating a daily INVENTOR'S horoscope for ${sign.name} (${sign.dates}) for ${today}.
 
-Format with clear sections using this EXACT structure with line breaks:
+This horoscope is for inventors, entrepreneurs, and innovators. Focus on invention, patents, intellectual property, creativity, and innovation themes.
 
-**Love & Relationships:**
-[2-3 sentences about love, romance, and connections]
+CRITICAL: You MUST use this EXACT format with headers on separate lines. Copy this structure exactly:
 
-**Career & Finances:**
-[2-3 sentences about work opportunities and money matters]
+**Innovation & Creativity:**
+Write 2-3 sentences about inventive breakthroughs, creative ideas, and innovation opportunities today. Mention patents or intellectual property naturally.
 
-**Health & Wellness:**
-[2-3 sentences about physical and mental well-being]
+**Business & Commercialization:**
+Write 2-3 sentences about bringing inventions to market, business opportunities, licensing, or partnerships. Naturally mention checking resources at https://patentwerks.ai for patent guidance or https://ipservices.us for IP services when relevant.
 
-**Cosmic Guidance:**
-[1-2 sentences of mystical advice for the day]
+**Mindset & Strategy:**
+Write 2-3 sentences about mental clarity, strategic thinking, problem-solving, or overcoming obstacles in the invention process.
+
+**Cosmic Guidance for Inventors:**
+Write 1-2 sentences of mystical advice specifically for inventors and innovators.
 
 **Lucky Elements:**
-Numbers: [3 numbers]
-Color: [1 color]
+Numbers: 3, 7, 21
+Color: Emerald Green
 
-Important: Put each section header on its own line, followed by the content. Use blank lines between sections.
+DO NOT write this as a flowing paragraph. Each section header MUST be on its own line followed by the content on the next line. Use a blank line between each section.
 
-Make it engaging, positive yet realistic, and written in a mystical, encouraging tone. Keep it between 150-200 words total.`
+Make it mystical, encouraging, inspiring for inventors, and positive yet realistic. 150-200 words total.`
       },
       weekly: {
-        content: `Generate a detailed, mystical weekly horoscope for ${sign.name} (${sign.dates}) for the week starting ${today}.
+        content: `You are generating a weekly INVENTOR'S horoscope for ${sign.name} (${sign.dates}) for the week starting ${today}.
 
-Format with clear sections using this EXACT structure with line breaks:
+This horoscope is for inventors, entrepreneurs, and innovators. Focus on invention, patents, intellectual property, R&D, prototyping, and commercialization themes.
+
+CRITICAL: You MUST use this EXACT format with headers on separate lines. Copy this structure exactly:
 
 **Week Overview:**
-[2-3 sentences setting the tone for the week ahead]
+Write 2-3 sentences about the week's overall energy for inventors and innovators.
 
-**Love & Relationships:**
-[3-4 sentences about romantic developments throughout the week]
+**Innovation & R&D:**
+Write 3-4 sentences about research, development, prototyping, testing, or creative breakthroughs this week.
 
-**Career & Professional Growth:**
-[3-4 sentences about work opportunities and challenges]
+**Patent & IP Strategy:**
+Write 3-4 sentences about protecting inventions, filing patents, IP strategy, or legal considerations. Naturally mention consulting with experts at https://patentwerks.ai for patent strategy or https://ipservices.us for comprehensive IP services.
 
-**Financial Outlook:**
-[2-3 sentences about money matters and financial decisions]
+**Commercialization & Partnerships:**
+Write 2-3 sentences about licensing deals, finding manufacturers, investor meetings, or business partnerships.
 
-**Health & Wellness:**
-[2-3 sentences about physical and mental well-being focus]
+**Inventor's Mindset:**
+Write 2-3 sentences about staying focused, overcoming setbacks, maintaining creative flow, or work-life balance.
 
-**Key Days to Watch:**
-[List 2-3 specific days with brief notes]
+**Key Days:**
+Monday - breakthrough moment, Wednesday - important meeting, Friday - strategic planning
 
 **Weekly Lucky Elements:**
-Numbers: [3-4 numbers]
-Colors: [2 colors]
+Numbers: 5, 12, 18, 25
+Colors: Azure Blue, Rose Gold
 
-Important: Put each section header on its own line, followed by the content. Use blank lines between sections.
+DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
 
-Make it engaging, insightful, positive yet realistic, and written in a mystical, encouraging tone. Keep it between 250-300 words total.`
+Make it mystical, insightful, and inspiring for inventors. 250-300 words total.`
       },
       monthly: {
-        content: `Generate a comprehensive, mystical monthly horoscope for ${sign.name} (${sign.dates}) for ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+        content: `You are generating a comprehensive monthly INVENTOR'S horoscope for ${sign.name} (${sign.dates}) for ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
 
-Format with clear sections using this EXACT structure with line breaks:
+This horoscope is for inventors, entrepreneurs, patent holders, and innovators. Focus on invention cycles, patent processes, product development, funding, and commercialization.
+
+CRITICAL: You MUST use this EXACT format with headers on separate lines. Copy this structure exactly:
 
 **Monthly Overview:**
-[3-4 sentences setting the cosmic tone for the entire month]
+Write 3-4 sentences about the cosmic energy affecting invention and innovation this month.
 
-**Love & Relationships:**
-[4-5 sentences about major romantic themes and developments]
+**Innovation & Product Development:**
+Write 4-5 sentences about major invention themes, product development cycles, prototyping milestones, or R&D breakthroughs.
 
-**Career & Professional Growth:**
-[4-5 sentences about work opportunities, challenges, and advancement]
+**Patent & IP Protection:**
+Write 4-5 sentences about patent filing timelines, IP strategy decisions, trademark considerations, or protecting innovations. Mention consulting the experts at https://patentwerks.ai for patent guidance and https://ipservices.us for comprehensive IP services throughout the month.
 
-**Financial Outlook:**
-[3-4 sentences about income, spending, and investment guidance]
+**Commercialization & Funding:**
+Write 3-4 sentences about bringing products to market, investor pitches, crowdfunding, licensing opportunities, or manufacturing partnerships.
 
-**Health & Wellness:**
-[3-4 sentences about physical and mental health focus areas]
+**Strategic Planning:**
+Write 3-4 sentences about long-term vision, competitive analysis, market positioning, or scaling strategies.
 
-**Personal Growth & Spirituality:**
-[3-4 sentences about inner development and spiritual themes]
+**Inventor's Personal Growth:**
+Write 3-4 sentences about mental resilience, creative confidence, work-life integration, or networking within the inventor community.
 
-**Key Dates & Planetary Influences:**
-[List 3-4 important dates with brief cosmic explanations]
+**Key Dates:**
+Dec 15 - patent milestone, Dec 22 - investor opportunity, Dec 28 - strategic breakthrough
 
 **Monthly Lucky Elements:**
-Numbers: [4-5 numbers]
-Colors: [2-3 colors]
-Gemstone: [1 gemstone]
+Numbers: 2, 9, 14, 21, 28
+Colors: Midnight Blue, Silver, Coral
+Gemstone: Amethyst
 
-Important: Put each section header on its own line, followed by the content. Use blank lines between sections.
+DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
 
-Make it comprehensive, insightful, positive yet realistic, and written in a mystical, encouraging tone with astrological depth. Keep it between 350-400 words total.`
+Make it comprehensive, mystical, and deeply inspiring for inventors. 350-400 words total.`
       }
     };
 
