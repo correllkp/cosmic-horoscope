@@ -225,7 +225,7 @@ export default function HoroscopeApp() {
                        hover:bg-opacity-20 transition-all duration-300 hover:scale-105 hover:shadow-2xl
                        ${selectedSign?.name === sign.name ? 'ring-2 ring-yellow-300 bg-opacity-20' : ''}`}
           >
-            <div className={`text-6xl mb-3 bg-gradient-to-br ${sign.color} bg-clip-text text-transparent`}>
+            <div className="text-6xl mb-3" style={{ fontFamily: 'Arial, sans-serif' }}>
               {sign.symbol}
             </div>
             <div className="font-bold text-xl mb-1">{sign.name}</div>
@@ -253,7 +253,7 @@ export default function HoroscopeApp() {
                   {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} Horoscope
                 </span>
               </div>
-              <div className={`text-8xl mb-4 bg-gradient-to-br ${selectedSign.color} bg-clip-text text-transparent inline-block`}>
+              <div className="text-8xl mb-4" style={{ fontFamily: 'Arial, sans-serif' }}>
                 {selectedSign.symbol}
               </div>
               <h2 className="text-3xl font-bold mb-2">{selectedSign.name}</h2>
