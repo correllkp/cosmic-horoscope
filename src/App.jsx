@@ -22,6 +22,29 @@ export default function HoroscopeApp() {
   const [loading, setLoading] = useState(false);
   const [timeframe, setTimeframe] = useState('daily'); // daily, weekly, monthly
 
+  // Function to convert URLs in text to clickable links
+  const linkifyText = (text) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-yellow-300 hover:text-yellow-200 underline transition-colors"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const generateHoroscope = async (sign) => {
     setLoading(true);
     setSelectedSign(sign);
@@ -209,7 +232,7 @@ export default function HoroscopeApp() {
                     if (headerMatch) {
                       return (
                         <h3 key={index} className="text-yellow-300 text-xl font-bold mb-3 mt-6 first:mt-0">
-                          {headerMatch[1]}
+                          {linkifyText(headerMatch[1])}
                         </h3>
                       );
                     }
@@ -218,7 +241,7 @@ export default function HoroscopeApp() {
                   if (line.trim()) {
                     return (
                       <p key={index} className="mb-4 leading-relaxed">
-                        {line}
+                        {linkifyText(line)}
                       </p>
                     );
                   }
