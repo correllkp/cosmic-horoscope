@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Moon, Sun, Star, Calendar } from 'lucide-react';
-import PersonalizedOverlay from './components/PersonalizedOverlay';
+import { Sparkles, Moon, Sun, Star } from 'lucide-react';
 
 const zodiacSigns = [
   { name: 'Aries', symbol: '♈', dates: 'Mar 21 - Apr 19', element: 'Fire', color: 'from-red-500 to-orange-500' },
@@ -23,18 +22,6 @@ export default function HoroscopeApp() {
   const [loading, setLoading] = useState(false);
   const [timeframe, setTimeframe] = useState('daily'); // daily, weekly, monthly
   const horoscopeRef = useRef(null);
-
-  // NEW: Birth date state with localStorage persistence
-  const [birthDate, setBirthDate] = useState(() => {
-    return localStorage.getItem('birthDate') || '';
-  });
-
-  // NEW: Save birth date to localStorage when it changes
-  useEffect(() => {
-    if (birthDate) {
-      localStorage.setItem('birthDate', birthDate);
-    }
-  }, [birthDate]);
 
   // Auto-scroll to horoscope when a sign is selected
   useEffect(() => {
@@ -107,7 +94,7 @@ export default function HoroscopeApp() {
       if (error.message.includes('Rate limit')) {
         errorMessage = '⏳ Too many requests! The stars need a moment to realign. Please wait 30 seconds and try again.';
       } else if (error.message.includes('authentication')) {
-        errorMessage = '🔒 API configuration issue. Please contact the site administrator.';
+        errorMessage = '🔑 API configuration issue. Please contact the site administrator.';
       } else if (error.message.includes('Failed to fetch')) {
         errorMessage = '🌐 Network connection issue. Please check your internet and try again.';
       } else {
@@ -140,29 +127,6 @@ export default function HoroscopeApp() {
         <p className="text-purple-300 mt-2">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
-      </div>
-
-      {/* NEW: Birth Date Input */}
-      <div className="max-w-2xl mx-auto mb-6">
-        <div className="bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-2xl p-4">
-          <label className="block text-purple-200 mb-2 font-semibold flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-yellow-300" />
-            Your Birth Date <span className="text-sm font-normal text-purple-300">(optional - for personalized energy insights)</span>
-          </label>
-          <input
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
-            className="w-full p-3 rounded-xl bg-white bg-opacity-20 text-white border-2 border-purple-300 border-opacity-30 focus:border-opacity-60 focus:outline-none placeholder-purple-300"
-          />
-          {birthDate && (
-            <p className="text-purple-200 text-xs mt-2 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-green-300" />
-              Saved! You'll get personalized energy insights with each horoscope
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Timeframe Selector */}
@@ -240,73 +204,62 @@ export default function HoroscopeApp() {
 
       {/* Horoscope Display */}
       {selectedSign && (
-        <div ref={horoscopeRef} className="max-w-3xl mx-auto space-y-6">
-          {/* Main Horoscope Card */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-3xl p-8 shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="mb-4">
-                <span className={`inline-block px-4 py-1 rounded-full text-sm font-semibold ${
-                  timeframe === 'daily' ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-purple-900' :
-                  timeframe === 'weekly' ? 'bg-gradient-to-r from-pink-400 to-purple-400 text-white' :
-                  'bg-gradient-to-r from-indigo-400 to-cyan-400 text-white'
-                }`}>
-                  {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} Horoscope
-                </span>
-              </div>
-              <div className={`text-8xl mb-4 bg-gradient-to-br ${selectedSign.color} bg-clip-text text-transparent inline-block`}>
-                {selectedSign.symbol}
-              </div>
-              <h2 className="text-3xl font-bold mb-2">{selectedSign.name}</h2>
-              <p className="text-purple-200">{selectedSign.dates}</p>
+        <div ref={horoscopeRef} className="max-w-3xl mx-auto bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-3xl p-8 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="mb-4">
+              <span className={`inline-block px-4 py-1 rounded-full text-sm font-semibold ${
+                timeframe === 'daily' ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-purple-900' :
+                timeframe === 'weekly' ? 'bg-gradient-to-r from-pink-400 to-purple-400 text-white' :
+                'bg-gradient-to-r from-indigo-400 to-cyan-400 text-white'
+              }`}>
+                {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} Horoscope
+              </span>
             </div>
-
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin mb-4">
-                  <Sparkles className="w-12 h-12 text-yellow-300" />
-                </div>
-                <p className="text-purple-200">Channeling cosmic innovation energies...</p>
-              </div>
-            ) : horoscope ? (
-              <div className="space-y-4">
-                <div className="h-1 w-24 mx-auto bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 rounded-full mb-6"></div>
-                <div className="text-lg leading-relaxed text-purple-50">
-                  {horoscope.split('\n').map((line, index) => {
-                    // Check if line contains bold markdown (headers)
-                    if (line.includes('**')) {
-                      const headerMatch = line.match(/\*\*([^*]+)\*\*/);
-                      if (headerMatch) {
-                        return (
-                          <h3 key={index} className="text-yellow-300 text-xl font-bold mb-3 mt-6 first:mt-0">
-                            {linkifyText(headerMatch[1])}
-                          </h3>
-                        );
-                      }
-                    }
-                    // Regular paragraph text
-                    if (line.trim()) {
-                      return (
-                        <p key={index} className="mb-4 leading-relaxed">
-                          {linkifyText(line)}
-                        </p>
-                      );
-                    }
-                    // Empty line for spacing
-                    return <div key={index} className="h-2"></div>;
-                  })}
-                </div>
-                <div className="h-1 w-24 mx-auto bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 rounded-full mt-6"></div>
-              </div>
-            ) : null}
+            <div className={`text-8xl mb-4 bg-gradient-to-br ${selectedSign.color} bg-clip-text text-transparent inline-block`}>
+              {selectedSign.symbol}
+            </div>
+            <h2 className="text-3xl font-bold mb-2">{selectedSign.name}</h2>
+            <p className="text-purple-200">{selectedSign.dates}</p>
           </div>
 
-          {/* NEW: Personalized Energy Overlay */}
-          {horoscope && birthDate && !loading && (
-            <PersonalizedOverlay 
-              horoscope={horoscope}
-              birthDate={birthDate}
-            />
-          )}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin mb-4">
+                <Sparkles className="w-12 h-12 text-yellow-300" />
+              </div>
+              <p className="text-purple-200">Channeling cosmic innovation energies...</p>
+            </div>
+          ) : horoscope ? (
+            <div className="space-y-4">
+              <div className="h-1 w-24 mx-auto bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 rounded-full mb-6"></div>
+              <div className="text-lg leading-relaxed text-purple-50">
+                {horoscope.split('\n').map((line, index) => {
+                  // Check if line contains bold markdown (headers)
+                  if (line.includes('**')) {
+                    const headerMatch = line.match(/\*\*([^*]+)\*\*/);
+                    if (headerMatch) {
+                      return (
+                        <h3 key={index} className="text-yellow-300 text-xl font-bold mb-3 mt-6 first:mt-0">
+                          {linkifyText(headerMatch[1])}
+                        </h3>
+                      );
+                    }
+                  }
+                  // Regular paragraph text
+                  if (line.trim()) {
+                    return (
+                      <p key={index} className="mb-4 leading-relaxed">
+                        {linkifyText(line)}
+                      </p>
+                    );
+                  }
+                  // Empty line for spacing
+                  return <div key={index} className="h-2"></div>;
+                })}
+              </div>
+              <div className="h-1 w-24 mx-auto bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 rounded-full mt-6"></div>
+            </div>
+          ) : null}
         </div>
       )}
 
