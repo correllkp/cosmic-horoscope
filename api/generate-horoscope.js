@@ -194,54 +194,56 @@ ACT 3 (Late Month, Days 21-31): Breakthrough emerges; "setback" was actually a b
 CRITICAL: You MUST use this EXACT format with headers on separate lines:
 
 **Monthly Overview:**
-Write 3-4 sentences creating a complete story arc. Reference how "the month that began with [opportunity from early month around ${today}] brings both challenges and ultimate breakthroughs." Mention specific timeframes: "Early ${new Date().toLocaleDateString('en-US', { month: 'long' })} (1-10) brings momentum, mid-month (11-20) tests patience with obstacles, late month (21-31) delivers unexpected wins." Include ${sign.name}'s personality traits in how they navigate this journey.
+Write 3-4 sentences creating a complete story arc for the remainder of ${new Date().toLocaleDateString('en-US', { month: 'long' })} from ${today} onward. The current date is ${today}, so structure the timeline accordingly: "Around ${today}, [describe the opportunity/challenge that's emerging now]. Over the next week (through ${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), this develops into [progression]. Late ${new Date().toLocaleDateString('en-US', { month: 'long' })} (final 10 days) brings [resolution/breakthrough]." Include ${sign.name}'s personality traits in how they navigate this journey. Make it clear this is forward-looking from ${today}.
 
 **Innovation & Product Development:**
-Write 4-5 sentences following the THREE-ACT structure:
-- EARLY MONTH: Good progress on the work begun around ${today}
-- MID-MONTH (specific dates like ${new Date().getDate()}-${new Date().getDate() + 7}): The minor technical issue from early month reveals itself as MAJOR problem - design flaw, compatibility issue, etc. Describe specific consequences: costs increase X%, timeline delays, need for redesign
-- LATE MONTH: The forced pivot actually creates SUPERIOR solution that's more marketable
-Include warnings about not missing the early warning signs.
+Write 4-5 sentences following this FORWARD-LOOKING timeline from ${today}:
+- STARTING NOW (${today}): Good initial progress on the opportunity/challenge mentioned in overview; note a MINOR technical inconsistency that surfaces today
+- NEXT WEEK (around ${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}): That minor issue from ${today} reveals itself as MAJOR problem - design flaw, compatibility issue, etc. Describe specific consequences: costs increase X%, timeline delays, need for redesign
+- FINAL WEEK OF MONTH (last 7-10 days): The forced pivot creates SUPERIOR solution that's more marketable
+Include warnings about not ignoring the early warning signs from ${today}.
 
 **Patent & IP Protection:**
-Write 4-5 sentences with specific timeline:
-- EARLY MONTH (Days 1-10): Favorable window for filing; reference any IP needs created by the business opportunity from ${today}
-- MID-MONTH (Days 11-20): As technical issues surface, patent claims need revision; office actions may arrive; prior art conflicts possible
-- LATE MONTH (Days 21-31): Revised claims are actually STRONGER than originals
-Mention consulting experts at https://patentwerks.ai for patent guidance and https://ipservices.us for comprehensive IP services, especially during the challenging mid-month filing period when design pivots require claim amendments.
+Write 4-5 sentences with this FORWARD-LOOKING timeline from ${today}:
+- THIS WEEK (${today} through next few days): Favorable window for filing provisional applications; reference any IP needs created by today's opportunity
+- NEXT 1-2 WEEKS: As technical issues surface, patent claims need revision; office actions may arrive; prior art conflicts possible
+- FINAL WEEK OF MONTH: Revised claims are actually STRONGER than originals; improved solution creates broader protection
+Mention consulting experts at https://patentwerks.ai for patent guidance and https://ipservices.us for comprehensive IP services, especially during the challenging period when design pivots require claim amendments.
 
 **Commercialization & Funding:**
-Write 3-4 sentences showing the business opportunity's journey:
-- EARLY MONTH: The opportunity from ${today} develops into substantive discussions
-- MID-MONTH: Technical delays cause skepticism; deals slow or pause; costs increase
-- LATE MONTH: Improved solution actually STRENGTHENS the opportunity; partners re-engage
-Include realistic warnings about funding gaps during the transition period.
+Write 3-4 sentences showing the business opportunity's journey FROM ${today} FORWARD:
+- STARTING NOW (${today}): The opportunity mentioned in overview develops into substantive discussions this week
+- NEXT 1-2 WEEKS: Technical delays cause skepticism; deals slow or pause; costs increase; potential funding gap
+- FINAL WEEK OF MONTH: Improved solution actually STRENGTHENS the opportunity; partners re-engage with better terms
+Include realistic warnings about funding gaps during the transition period. Make timeline clear: this all happens FROM ${today} onward, not looking backward.
 
 **Strategic Planning:**
-Write 3-4 sentences about competitive landscape and decisions. Warn against impulsive scaling during mid-month chaos (around day ${new Date().getDate() + 5}-${new Date().getDate() + 10}). Emphasize focusing on core value proposition before diversifying. A competitor's announcement might actually validate the market or reveal your pivot was strategically essential.
+Write 3-4 sentences about competitive landscape and decisions FROM ${today} FORWARD. Warn against impulsive scaling decisions during the challenging period (roughly one week from now). Emphasize focusing on core value proposition before diversifying. A competitor's announcement in coming weeks might actually validate the market or reveal your pivot was strategically essential. Make clear this guidance applies to decisions made FROM ${today} onward.
 
 **Inventor's Personal Growth:**
-Write 3-4 sentences following emotional arc for ${sign.name}:
-- EARLY MONTH: Confidence and momentum
-- MID-MONTH (specific dates): Mental test; potential imposter syndrome around day ${new Date().getDate() + 8}-${new Date().getDate() + 10}; critical moment of wanting to quit
-- LATE MONTH: Resilience pays off; personal growth from persevering through struggle
-Reference ${sign.name}'s core strength (Aries: courage, Taurus: persistence, Gemini: adaptability, etc.) as what carries them through.
+Write 3-4 sentences following emotional arc for ${sign.name} FROM ${today} FORWARD:
+- THIS WEEK (starting ${today}): Initial confidence and momentum from new opportunity
+- NEXT 1-2 WEEKS: Mental test as challenges surface; potential imposter syndrome; critical moment of wanting to quit
+- FINAL WEEK OF MONTH: Resilience pays off; personal growth from persevering through struggle
+Reference ${sign.name}'s core strength (Aries: courage, Taurus: persistence, Gemini: adaptability, etc.) as what carries them through. Make timeline explicitly forward-looking from ${today}.
 
 **Key Dates:**
-List exactly 4-5 specific dates spanning the month with clear progression:
+List exactly 4-5 specific dates spanning FROM ${today} THROUGH END OF MONTH with clear progression:
 
-${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [Reference the opportunity/challenge that emerges; this is the STARTING POINT]
-[Month] ${Math.min(new Date().getDate() + 3, 28)} - [Early progress or important milestone]
-[Month] ${Math.min(new Date().getDate() + 8, 28)} - [Crisis point: technical issues crystallize OR negotiations face major obstacle]
-[Month] ${Math.min(new Date().getDate() + 14, 31)} - [Breakthrough moment: solution emerges after struggle]
-[Month] ${Math.min(new Date().getDate() + 21, 31)} - [Resolution: clarity about next steps; strengthened position]
+${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [Today: The opportunity/challenge emerges; this is the STARTING POINT of the monthly journey]
+${new Date(Date.now() + 3*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [3 days from now: Early progress or important development]
+${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [1 week from now: Crisis point - technical issues crystallize OR negotiations face major obstacle]
+${new Date(Date.now() + 14*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [2 weeks from now: Breakthrough moment - solution emerges after struggle]
+${new Date(Date.now() + 21*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [3 weeks from now: Resolution - clarity about next steps; strengthened position]
 
-Example format showing progression:
-December 14 - Licensing opportunity emerges; minor technical inconsistency surfaces
+Example format showing progression FROM TODAY FORWARD:
+December 14 - Licensing opportunity emerges today; minor technical inconsistency surfaces
 December 17 - Critical negotiations day; attention to detail required
-December 19 - Technical issues crystallize into design flaw requiring pivot; initial despair
-December 23 - Breakthrough moment after intense struggle; superior solution emerges
-December 28 - Strategic clarity; relationships that seemed lost actually strengthen
+December 21 - Technical issues crystallize into design flaw requiring pivot
+December 28 - Breakthrough moment after intense struggle; superior solution emerges
+January 4 - Strategic clarity; relationships that seemed lost actually strengthen
+
+NOTE: All dates should be FUTURE dates from ${today} onward. Do not reference past dates before ${today}.
 
 **Monthly Lucky Elements:**
 Generate exactly 5-7 lucky numbers - MUST INCLUDE all 4 numbers from weekly, plus 1-3 new ones
