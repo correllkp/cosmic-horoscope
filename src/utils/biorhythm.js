@@ -142,18 +142,31 @@ export const generatePersonalizedOverlay = (horoscope, biorhythms, timeframe = '
 
   const timeText = getTimeframeText();
   
+  // Group themes by biorhythm dependency to avoid duplicates
+  const themesByBio = {
+    physical: [],
+    emotional: [],
+    intellectual: []
+  };
+
+  themes.forEach(theme => {
+    themesByBio[theme.biorhythmDependency].push(theme.displayName);
+  });
+
   const recommendations = [];
   
-  themes.forEach(theme => {
-    let bioValue;
-    let bioName;
-    let emoji;
+  // Generate ONE recommendation per biorhythm type (if themes exist for that type)
+  Object.keys(themesByBio).forEach(bioType => {
+    const themeNames = themesByBio[bioType];
+    if (themeNames.length === 0) return; // Skip if no themes for this biorhythm type
+
+    let bioValue, bioName, emoji;
     
-    if (theme.biorhythmDependency === 'physical') {
+    if (bioType === 'physical') {
       bioValue = biorhythms.physical;
       bioName = 'Physical energy';
       emoji = '⚡';
-    } else if (theme.biorhythmDependency === 'emotional') {
+    } else if (bioType === 'emotional') {
       bioValue = biorhythms.emotional;
       bioName = 'Emotional energy';
       emoji = '❤️';
@@ -162,6 +175,11 @@ export const generatePersonalizedOverlay = (horoscope, biorhythms, timeframe = '
       bioName = 'Mental clarity';
       emoji = '🧠';
     }
+
+    // Create a combined theme description
+    const themeDescription = themeNames.length === 1 
+      ? themeNames[0].toLowerCase()
+      : themeNames.slice(0, -1).map(t => t.toLowerCase()).join(', ') + ' and ' + themeNames[themeNames.length - 1].toLowerCase();
     
     // Determine recommendation type and message with timeframe-aware language
     let type, message, icon, color;
@@ -171,43 +189,47 @@ export const generatePersonalizedOverlay = (horoscope, biorhythms, timeframe = '
       type = 'critical';
       icon = '⚠️';
       color = 'yellow';
-      message = `${emoji} ${bioName} is CRITICAL (${bioValue.toFixed(0)}% - crossing zero). Your horoscope mentions ${theme.displayName.toLowerCase()}, but this is a transition ${timeframe === 'daily' ? 'day' : 'period'}. Proceed with extra caution${timeframe === 'daily' ? ' or postpone 1-2 days' : ''}.`;
+      message = `${emoji} ${bioName} is CRITICAL (${bioValue.toFixed(0)}% - crossing zero). Your horoscope mentions ${themeDescription}, but this is a transition ${timeframe === 'daily' ? 'day' : 'period'}. Proceed with extra caution${timeframe === 'daily' ? ' or postpone 1-2 days' : ''}.`;
     } else if (bioValue > 60) {
       // Excellent alignment
       type = 'excellent';
       icon = '✓';
       color = 'green';
-      message = `${emoji} ${bioName} is high (${bioValue.toFixed(0)}%) - perfect alignment with the ${theme.displayName.toLowerCase()} your horoscope highlights for ${timeText.period}!`;
+      message = `${emoji} ${bioName} is high (${bioValue.toFixed(0)}%) - perfect alignment with the ${themeDescription} your horoscope highlights for ${timeText.period}!`;
     } else if (bioValue > 20) {
       // Good alignment
       type = 'good';
       icon = '~';
       color = 'blue';
-      message = `${emoji} ${bioName} is moderate (${bioValue.toFixed(0)}%). You can engage with ${theme.displayName.toLowerCase()} ${timeText.period}, just pace yourself and take breaks.`;
+      message = `${emoji} ${bioName} is moderate (${bioValue.toFixed(0)}%). You can engage with ${themeDescription} ${timeText.period}, just pace yourself and take breaks.`;
     } else if (bioValue > -20) {
       // Declining - caution advised
       type = 'caution';
       icon = '!';
       color = 'yellow';
-      message = `${emoji} ${bioName} is declining (${bioValue.toFixed(0)}%). Your horoscope mentions ${theme.displayName.toLowerCase()}, but consider lighter engagement${timeframe === 'daily' ? ' or postponing to tomorrow when energy rises' : ' during this period'}.`;
+      message = `${emoji} ${bioName} is declining (${bioValue.toFixed(0)}%). Your horoscope mentions ${themeDescription}, but consider lighter engagement${timeframe === 'daily' ? ' or postponing to tomorrow when energy rises' : ' during this period'}.`;
     } else {
       // Low energy - avoid
       type = 'avoid';
       icon = '✗';
       color = 'red';
-      message = `${emoji} ${bioName} is low (${bioValue.toFixed(0)}%). While your horoscope highlights ${theme.displayName.toLowerCase()}, your energy suggests ${timeframe === 'daily' ? 'avoiding demanding activities in this area today' : 'taking a lighter approach during this period'}.`;
+      message = `${emoji} ${bioName} is low (${bioValue.toFixed(0)}%). While your horoscope highlights ${themeDescription}, your energy suggests ${timeframe === 'daily' ? 'avoiding demanding activities in these areas today' : 'taking a lighter approach during this period'}.`;
     }
     
     recommendations.push({
       type,
-      theme: theme.name,
-      displayName: theme.displayName,
+      bioType,
+      themes: themeNames,
       message,
       icon,
       color,
       bioValue
     });
   });
+  
+  // Sort recommendations: physical, emotional, intellectual
+  const order = { physical: 1, emotional: 2, intellectual: 3 };
+  recommendations.sort((a, b) => order[a.bioType] - order[b.bioType]);
   
   return recommendations;
 };
