@@ -305,7 +305,6 @@ export default function HoroscopeApp() {
             <PersonalizedOverlay 
               horoscope={horoscope}
               birthDate={birthDate}
-              timeframe={timeframe}
             />
           )}
         </div>

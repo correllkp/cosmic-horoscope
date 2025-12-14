@@ -122,14 +122,25 @@ export const analyzeHoroscope = (horoscopeText) => {
  * Generate personalized recommendations based on horoscope and biorhythm alignment
  * @param {string} horoscope - The horoscope text
  * @param {Object} biorhythms - Biorhythm data from calculateBiorhythm
+ * @param {string} timeframe - The prediction timeframe ('daily', 'weekly', 'monthly')
  * @returns {Array} Array of recommendation objects
  */
-export const generatePersonalizedOverlay = (horoscope, biorhythms) => {
+export const generatePersonalizedOverlay = (horoscope, biorhythms, timeframe = 'daily') => {
   const themes = analyzeHoroscope(horoscope);
   
   if (themes.length === 0 || !biorhythms) {
     return null;
   }
+
+  // Get timeframe-appropriate language
+  const getTimeframeText = () => {
+    if (timeframe === 'daily') return { period: 'today', action: 'today', postpone: 'tomorrow' };
+    if (timeframe === 'weekly') return { period: 'this week', action: 'this week', postpone: 'next week' };
+    if (timeframe === 'monthly') return { period: 'this month', action: 'this month', postpone: 'next month' };
+    return { period: 'now', action: 'currently', postpone: 'later' };
+  };
+
+  const timeText = getTimeframeText();
   
   const recommendations = [];
   
@@ -152,7 +163,7 @@ export const generatePersonalizedOverlay = (horoscope, biorhythms) => {
       emoji = '🧠';
     }
     
-    // Determine recommendation type and message
+    // Determine recommendation type and message with timeframe-aware language
     let type, message, icon, color;
     
     if (Math.abs(bioValue) < 15) {
@@ -160,31 +171,31 @@ export const generatePersonalizedOverlay = (horoscope, biorhythms) => {
       type = 'critical';
       icon = '⚠️';
       color = 'yellow';
-      message = `${emoji} ${bioName} is CRITICAL (${bioValue.toFixed(0)}% - crossing zero). Your horoscope mentions ${theme.displayName.toLowerCase()}, but this is a transition day. Proceed with extra caution or postpone 1-2 days.`;
+      message = `${emoji} ${bioName} is CRITICAL (${bioValue.toFixed(0)}% - crossing zero). Your horoscope mentions ${theme.displayName.toLowerCase()}, but this is a transition ${timeframe === 'daily' ? 'day' : 'period'}. Proceed with extra caution${timeframe === 'daily' ? ' or postpone 1-2 days' : ''}.`;
     } else if (bioValue > 60) {
       // Excellent alignment
       type = 'excellent';
       icon = '✓';
       color = 'green';
-      message = `${emoji} ${bioName} is high (${bioValue.toFixed(0)}%) - perfect alignment with the ${theme.displayName.toLowerCase()} your horoscope highlights!`;
+      message = `${emoji} ${bioName} is high (${bioValue.toFixed(0)}%) - perfect alignment with the ${theme.displayName.toLowerCase()} your horoscope highlights for ${timeText.period}!`;
     } else if (bioValue > 20) {
       // Good alignment
       type = 'good';
       icon = '~';
       color = 'blue';
-      message = `${emoji} ${bioName} is moderate (${bioValue.toFixed(0)}%). You can engage with ${theme.displayName.toLowerCase()}, just pace yourself and take breaks.`;
+      message = `${emoji} ${bioName} is moderate (${bioValue.toFixed(0)}%). You can engage with ${theme.displayName.toLowerCase()} ${timeText.period}, just pace yourself and take breaks.`;
     } else if (bioValue > -20) {
       // Declining - caution advised
       type = 'caution';
       icon = '!';
       color = 'yellow';
-      message = `${emoji} ${bioName} is declining (${bioValue.toFixed(0)}%). Your horoscope mentions ${theme.displayName.toLowerCase()}, but consider lighter engagement or postponing to tomorrow when energy rises.`;
+      message = `${emoji} ${bioName} is declining (${bioValue.toFixed(0)}%). Your horoscope mentions ${theme.displayName.toLowerCase()}, but consider lighter engagement${timeframe === 'daily' ? ' or postponing to tomorrow when energy rises' : ' during this period'}.`;
     } else {
       // Low energy - avoid
       type = 'avoid';
       icon = '✗';
       color = 'red';
-      message = `${emoji} ${bioName} is low (${bioValue.toFixed(0)}%). While your horoscope highlights ${theme.displayName.toLowerCase()}, your energy suggests avoiding demanding activities in this area today.`;
+      message = `${emoji} ${bioName} is low (${bioValue.toFixed(0)}%). While your horoscope highlights ${theme.displayName.toLowerCase()}, your energy suggests ${timeframe === 'daily' ? 'avoiding demanding activities in this area today' : 'taking a lighter approach during this period'}.`;
     }
     
     recommendations.push({
@@ -205,14 +216,25 @@ export const generatePersonalizedOverlay = (horoscope, biorhythms) => {
  * Calculate overall alignment score between horoscope and biorhythm
  * @param {string} horoscope - The horoscope text
  * @param {Object} biorhythms - Biorhythm data
+ * @param {string} timeframe - The prediction timeframe ('daily', 'weekly', 'monthly')
  * @returns {Object} Alignment score and message
  */
-export const calculateAlignment = (horoscope, biorhythms) => {
+export const calculateAlignment = (horoscope, biorhythms, timeframe = 'daily') => {
   const themes = analyzeHoroscope(horoscope);
   
   if (themes.length === 0 || !biorhythms) {
     return { score: 50, message: "Unable to calculate alignment" };
   }
+
+  // Get timeframe-appropriate language
+  const getTimeframeText = () => {
+    if (timeframe === 'daily') return 'today';
+    if (timeframe === 'weekly') return 'this week';
+    if (timeframe === 'monthly') return 'this month';
+    return 'now';
+  };
+
+  const timeText = getTimeframeText();
   
   let totalAlignment = 0;
   
@@ -237,13 +259,13 @@ export const calculateAlignment = (horoscope, biorhythms) => {
   
   let message;
   if (score > 75) {
-    message = "Excellent alignment! Your cosmic forecast and personal energy cycles are working together beautifully.";
+    message = `Excellent alignment ${timeText}! Your cosmic forecast and personal energy cycles are working together beautifully.`;
   } else if (score > 50) {
-    message = "Good alignment. Some cosmic opportunities may benefit from strategic timing based on your energy cycles.";
+    message = `Good alignment ${timeText}. Some cosmic opportunities may benefit from strategic timing based on your energy cycles.`;
   } else if (score > 30) {
-    message = "Moderate alignment. Your horoscope shows opportunities, but current energy suggests patience and careful planning.";
+    message = `Moderate alignment ${timeText}. Your horoscope shows opportunities, but current energy suggests patience and careful planning.`;
   } else {
-    message = "Low alignment today. Consider this a planning and preparation day - your energy will support action later this week.";
+    message = `Lower alignment ${timeText}. Consider this a planning and preparation ${timeframe === 'daily' ? 'day' : 'period'} - your energy will support action ${timeframe === 'daily' ? 'later this week' : 'soon'}.`;
   }
   
   return { score, message };

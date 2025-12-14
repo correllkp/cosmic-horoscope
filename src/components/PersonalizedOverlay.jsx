@@ -9,7 +9,7 @@ import {
   calculateAlignment 
 } from '../utils/biorhythm';
 
-export default function PersonalizedOverlay({ horoscope, birthDate }) {
+export default function PersonalizedOverlay({ horoscope, birthDate, timeframe = 'daily' }) {
   // Calculate biorhythm and overlay
   const biorhythms = useMemo(() => {
     if (!birthDate) return null;
@@ -18,18 +18,26 @@ export default function PersonalizedOverlay({ horoscope, birthDate }) {
 
   const recommendations = useMemo(() => {
     if (!horoscope || !biorhythms) return null;
-    return generatePersonalizedOverlay(horoscope, biorhythms);
-  }, [horoscope, biorhythms]);
+    return generatePersonalizedOverlay(horoscope, biorhythms, timeframe);
+  }, [horoscope, biorhythms, timeframe]);
 
   const alignment = useMemo(() => {
     if (!horoscope || !biorhythms) return null;
-    return calculateAlignment(horoscope, biorhythms);
-  }, [horoscope, biorhythms]);
+    return calculateAlignment(horoscope, biorhythms, timeframe);
+  }, [horoscope, biorhythms, timeframe]);
 
   // Don't show if no birth date or no recommendations
   if (!birthDate || !biorhythms || !recommendations || recommendations.length === 0) {
     return null;
   }
+
+  // Get timeframe-specific title
+  const getTitle = () => {
+    if (timeframe === 'daily') return 'Your Energy Alignment Today';
+    if (timeframe === 'weekly') return 'Your Energy Alignment This Week';
+    if (timeframe === 'monthly') return 'Your Energy Alignment This Month';
+    return 'Your Energy Alignment';
+  };
 
   return (
     <div className="mt-6 bg-gradient-to-r from-purple-500 to-pink-500 bg-opacity-20 rounded-2xl p-6 border-2 border-purple-300 border-opacity-30">
@@ -37,7 +45,7 @@ export default function PersonalizedOverlay({ horoscope, birthDate }) {
       {/* Header */}
       <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Zap className="w-6 h-6 text-yellow-300" />
-        Your Energy Alignment
+        {getTitle()}
       </h3>
 
       {/* Critical Day Warning (if applicable) */}
