@@ -97,10 +97,22 @@ Write 2-3 sentences about licensing deals, finding manufacturers, investor meeti
 Write 2-3 sentences about staying focused, overcoming setbacks, maintaining creative flow, or work-life balance. Include warnings about burnout, distractions, or self-doubt.
 
 **Key Days:**
-Identify 3 specific days this week with brief mystical notes about each (one favorable, one challenging, one neutral).
+Monday - [brief note about this day's energy]
+Wednesday - [brief note about this day's energy]  
+Friday - [brief note about this day's energy]
+
+Example format:
+Monday - breakthrough energy, ideal for prototyping
+Wednesday - challenging communications, review contracts carefully
+Friday - strategic planning favored, avoid rushed decisions
 
 **Weekly Lucky Elements:**
-Generate unique lucky numbers (4 different numbers between 1-99) and 2 lucky colors that resonate with this zodiac sign's energy and element.
+Numbers: [3-4 unique numbers between 1-99]
+Colors: [2 specific colors that match this sign's energy]
+
+Example format:
+Numbers: 7, 14, 23, 31
+Colors: Sapphire Blue, Silver
 
 DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
 
@@ -134,10 +146,24 @@ Write 3-4 sentences about long-term vision, competitive analysis, market positio
 Write 3-4 sentences about mental resilience, creative confidence, work-life integration, or networking. Include warnings about burnout, isolation, imposter syndrome, or loss of motivation during difficult periods.
 
 **Key Dates:**
-Identify 3-4 important dates this month with specific mystical guidance for each (mix of opportunities and challenges).
+December [date] - [specific guidance for this date]
+December [date] - [specific guidance for this date]
+December [date] - [specific guidance for this date]
+
+Example format:
+December 5 - patent milestone, expect delays but persist
+December 15 - investor opportunity, prepare thoroughly for tough questions
+December 22 - strategic breakthrough after overcoming morning setback
 
 **Monthly Lucky Elements:**
-Generate unique lucky numbers (5 different numbers between 1-99), 2-3 lucky colors, and 1 lucky gemstone that align with this zodiac sign's energy and element.
+Numbers: [5 unique numbers between 1-99]
+Colors: [2-3 specific colors]
+Gemstone: [1 specific gemstone]
+
+Example format:
+Numbers: 3, 12, 19, 24, 31
+Colors: Midnight Blue, Silver, Coral
+Gemstone: Amethyst
 
 DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
 
@@ -176,7 +202,7 @@ Make it comprehensive, mystical, balanced between opportunities and realistic ch
           temperature: 0.9,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048,  // Increased from 1024 to handle longer responses
+          maxOutputTokens: 4096,  // Increased to 4096 to prevent cutoffs on weekly/monthly
         }
       })
     });

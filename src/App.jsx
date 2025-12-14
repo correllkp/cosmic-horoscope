@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Moon, Sun, Star } from 'lucide-react';
 
 const zodiacSigns = [
@@ -21,6 +21,14 @@ export default function HoroscopeApp() {
   const [horoscope, setHoroscope] = useState('');
   const [loading, setLoading] = useState(false);
   const [timeframe, setTimeframe] = useState('daily'); // daily, weekly, monthly
+  const horoscopeRef = useRef(null);
+
+  // Auto-scroll to horoscope when a sign is selected
+  useEffect(() => {
+    if (selectedSign && horoscopeRef.current) {
+      horoscopeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedSign]);
 
   // Function to convert URLs in text to clickable links
   const linkifyText = (text) => {
@@ -196,7 +204,7 @@ export default function HoroscopeApp() {
 
       {/* Horoscope Display */}
       {selectedSign && (
-        <div className="max-w-3xl mx-auto bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-3xl p-8 shadow-2xl">
+        <div ref={horoscopeRef} className="max-w-3xl mx-auto bg-white bg-opacity-10 backdrop-blur-lg border border-white border-opacity-20 rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-6">
             <div className="mb-4">
               <span className={`inline-block px-4 py-1 rounded-full text-sm font-semibold ${
