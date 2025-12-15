@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const zodiacSigns = [
@@ -29,6 +29,58 @@ function App() {
   // Biorhythm state
   const [birthDate, setBirthDate] = useState('');
   const [biorhythm, setBiorhythm] = useState(null);
+
+  // Calculate zodiac sign from birthdate
+  const getZodiacSignFromDate = (dateString) => {
+    const date = new Date(dateString);
+    const month = date.getMonth() + 1; // 1-12
+    const day = date.getDate();
+    
+    // Zodiac date ranges
+    if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return zodiacSigns.find(s => s.name === 'Capricorn');
+    if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return zodiacSigns.find(s => s.name === 'Aquarius');
+    if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return zodiacSigns.find(s => s.name === 'Pisces');
+    if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return zodiacSigns.find(s => s.name === 'Aries');
+    if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return zodiacSigns.find(s => s.name === 'Taurus');
+    if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return zodiacSigns.find(s => s.name === 'Gemini');
+    if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return zodiacSigns.find(s => s.name === 'Cancer');
+    if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return zodiacSigns.find(s => s.name === 'Leo');
+    if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return zodiacSigns.find(s => s.name === 'Virgo');
+    if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return zodiacSigns.find(s => s.name === 'Libra');
+    if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return zodiacSigns.find(s => s.name === 'Scorpio');
+    if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return zodiacSigns.find(s => s.name === 'Sagittarius');
+    
+    return null;
+  };
+
+  // Load birthdate from localStorage on mount
+  useEffect(() => {
+    const storedBirthDate = localStorage.getItem('birthDate');
+    if (storedBirthDate) {
+      setBirthDate(storedBirthDate);
+      
+      // Auto-calculate biorhythm
+      const birth = new Date(storedBirthDate);
+      const today = new Date();
+      const daysSinceBirth = Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+
+      const physical = Math.sin((2 * Math.PI * daysSinceBirth) / 23) * 100;
+      const emotional = Math.sin((2 * Math.PI * daysSinceBirth) / 28) * 100;
+      const intellectual = Math.sin((2 * Math.PI * daysSinceBirth) / 33) * 100;
+
+      setBiorhythm({
+        physical: physical.toFixed(1),
+        emotional: emotional.toFixed(1),
+        intellectual: intellectual.toFixed(1),
+      });
+
+      // Auto-select zodiac sign
+      const calculatedSign = getZodiacSignFromDate(storedBirthDate);
+      if (calculatedSign) {
+        setSelectedSign(calculatedSign);
+      }
+    }
+  }, []);
 
   const generateHoroscope = async (sign, timeframe) => {
     setLoading(true);
@@ -88,6 +140,29 @@ function App() {
     }
   };
 
+  // Calculate zodiac sign from birthdate
+  const getZodiacSignFromDate = (dateString) => {
+    const date = new Date(dateString);
+    const month = date.getMonth() + 1; // 1-12
+    const day = date.getDate();
+    
+    // Zodiac date ranges
+    if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return zodiacSigns.find(s => s.name === 'Capricorn');
+    if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return zodiacSigns.find(s => s.name === 'Aquarius');
+    if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return zodiacSigns.find(s => s.name === 'Pisces');
+    if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return zodiacSigns.find(s => s.name === 'Aries');
+    if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return zodiacSigns.find(s => s.name === 'Taurus');
+    if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return zodiacSigns.find(s => s.name === 'Gemini');
+    if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return zodiacSigns.find(s => s.name === 'Cancer');
+    if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return zodiacSigns.find(s => s.name === 'Leo');
+    if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return zodiacSigns.find(s => s.name === 'Virgo');
+    if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return zodiacSigns.find(s => s.name === 'Libra');
+    if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return zodiacSigns.find(s => s.name === 'Scorpio');
+    if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return zodiacSigns.find(s => s.name === 'Sagittarius');
+    
+    return null;
+  };
+
   const calculateBiorhythm = () => {
     if (!birthDate) {
       alert('Please enter your birth date');
@@ -111,10 +186,22 @@ function App() {
       intellectual: intellectual.toFixed(1),
     });
 
-    // Refresh horoscope if sign is selected (to use birth date for personalization)
-    if (selectedSign) {
-      generateHoroscope(selectedSign, timeframe);
+    // Auto-select the correct zodiac sign based on birthdate
+    const calculatedSign = getZodiacSignFromDate(birthDate);
+    if (calculatedSign) {
+      setSelectedSign(calculatedSign);
+      generateHoroscope(calculatedSign, timeframe);
     }
+  };
+
+  // Clear birthdate and allow manual sign selection
+  const clearBirthDate = () => {
+    setBirthDate('');
+    localStorage.removeItem('birthDate');
+    setBiorhythm(null);
+    setPersonalized(false);
+    setNatalSun(null);
+    setTransits([]);
   };
 
   const getPhaseDescription = (value) => {
@@ -211,22 +298,63 @@ function App() {
           <h2 className="text-2xl font-bold text-purple-300 mb-6 text-center">
             Select Your Zodiac Sign
           </h2>
+          
+          {/* Show birthdate lock notice if birthdate is set */}
+          {birthDate && selectedSign && (
+            <div className="bg-yellow-400 bg-opacity-10 rounded-lg p-4 mb-6 border border-yellow-500 border-opacity-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔒</span>
+                  <div>
+                    <p className="text-yellow-300 font-semibold text-sm">
+                      Your sign: {selectedSign.name} (based on birthdate {new Date(birthDate).toLocaleDateString()})
+                    </p>
+                    <p className="text-yellow-200 text-xs mt-1">
+                      Other signs are locked for personalized readings. Clear your birthdate to explore other signs.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={clearBirthDate}
+                  className="px-4 py-2 bg-yellow-500 bg-opacity-20 hover:bg-opacity-30 text-yellow-300 rounded-lg text-sm border border-yellow-500 transition-all"
+                >
+                  Clear Birthdate
+                </button>
+              </div>
+            </div>
+          )}
+          
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {zodiacSigns.map((sign) => (
-              <button
-                key={sign.name}
-                onClick={() => handleSignSelect(sign)}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  selectedSign?.name === sign.name
-                    ? 'bg-purple-600 border-purple-400'
-                    : 'bg-purple-800 bg-opacity-50 border-purple-600 hover:border-purple-400'
-                }`}
-              >
-                <div className="text-4xl mb-2">{sign.symbol}</div>
-                <div className="text-purple-200 font-semibold">{sign.name}</div>
-                <div className="text-purple-400 text-xs">{sign.dates}</div>
-              </button>
-            ))}
+            {zodiacSigns.map((sign) => {
+              const isLocked = birthDate && selectedSign && sign.name !== selectedSign.name;
+              const isSelected = selectedSign?.name === sign.name;
+              
+              return (
+                <button
+                  key={sign.name}
+                  onClick={() => !isLocked && handleSignSelect(sign)}
+                  disabled={isLocked}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    isSelected
+                      ? 'bg-purple-600 border-purple-400'
+                      : isLocked
+                      ? 'bg-purple-900 bg-opacity-30 border-purple-800 opacity-40 cursor-not-allowed'
+                      : 'bg-purple-800 bg-opacity-50 border-purple-600 hover:border-purple-400 cursor-pointer'
+                  }`}
+                >
+                  <div className="text-4xl mb-2">{sign.symbol}</div>
+                  <div className={`font-semibold ${isLocked ? 'text-purple-500' : 'text-purple-200'}`}>
+                    {sign.name}
+                  </div>
+                  <div className={`text-xs ${isLocked ? 'text-purple-600' : 'text-purple-400'}`}>
+                    {sign.dates}
+                  </div>
+                  {isLocked && (
+                    <div className="text-xs text-purple-500 mt-1">🔒</div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
