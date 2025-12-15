@@ -1,386 +1,209 @@
-// Simple in-memory cache (resets on each deployment)
-const horoscopeCache = new Map();
+// api/generate-horoscope.js
+// With automatic retry logic for 503 errors
 
-// Cache duration: Daily horoscopes cache for 24 hours, Weekly for 7 days, Monthly for 30 days
-const CACHE_DURATION = {
-  daily: 24 * 60 * 60 * 1000,    // 24 hours
-  weekly: 7 * 24 * 60 * 60 * 1000,  // 7 days
-  monthly: 30 * 24 * 60 * 60 * 1000  // 30 days
-};
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// In-memory cache
+const cache = new Map();
+
+function getCacheKey(signName, timeframe, date) {
+  return `${signName}-${timeframe}-${date}`;
+}
+
+function isCacheValid(cacheEntry, timeframe) {
+  if (!cacheEntry) return false;
+  
+  const now = Date.now();
+  const age = now - cacheEntry.timestamp;
+  
+  const CACHE_DURATION = {
+    daily: 24 * 60 * 60 * 1000,
+    weekly: 7 * 24 * 60 * 60 * 1000,
+    monthly: 30 * 24 * 60 * 60 * 1000
+  };
+  
+  return age < CACHE_DURATION[timeframe];
+}
+
+// Helper: Wait for specified milliseconds
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Helper: Retry with exponential backoff
+async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 2000) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      // Check if it's a 503 (overloaded) error
+      const is503 = error.message?.includes('503') || 
+                    error.message?.includes('overloaded') ||
+                    error.message?.includes('UNAVAILABLE');
+      
+      if (is503 && attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`Gemini API overloaded (503), retrying in ${delay}ms... (attempt ${attempt}/${maxRetries})`);
+        await sleep(delay);
+        continue;
+      }
+      
+      // If not 503 or final retry, throw the error
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
 
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { sign, timeframe } = req.body;
+    const { sign, timeframe = 'daily' } = req.body;
 
-    if (!sign || !timeframe) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    if (!sign || !sign.name) {
+      return res.status(400).json({ error: 'Sign information is required' });
     }
 
-    // Create cache keys for all three timeframes
-    const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const cacheKeys = {
-      daily: `${sign.name}-daily-${todayDate}`,
-      weekly: `${sign.name}-weekly-${todayDate}`,
-      monthly: `${sign.name}-monthly-${todayDate}`
-    };
+    // Check cache
+    const today = new Date().toISOString().split('T')[0];
+    const cacheKey = getCacheKey(sign.name, timeframe, today);
+    const cachedEntry = cache.get(cacheKey);
 
-    // Check if ALL THREE are cached and valid
-    const dailyCached = horoscopeCache.get(cacheKeys.daily);
-    const weeklyCached = horoscopeCache.get(cacheKeys.weekly);
-    const monthlyCached = horoscopeCache.get(cacheKeys.monthly);
-
-    const dailyValid = dailyCached && (Date.now() - dailyCached.timestamp < CACHE_DURATION.daily);
-    const weeklyValid = weeklyCached && (Date.now() - weeklyCached.timestamp < CACHE_DURATION.weekly);
-    const monthlyValid = monthlyCached && (Date.now() - monthlyCached.timestamp < CACHE_DURATION.monthly);
-
-    // If the requested timeframe is cached and valid, return it immediately
-    const requestedCached = horoscopeCache.get(cacheKeys[timeframe]);
-    const requestedValid = requestedCached && (Date.now() - requestedCached.timestamp < CACHE_DURATION[timeframe]);
-
-    if (requestedValid) {
-      console.log(`Serving cached horoscope for ${cacheKeys[timeframe]}`);
-      return res.status(200).json({ 
-        horoscope: requestedCached.content,
+    if (isCacheValid(cachedEntry, timeframe)) {
+      console.log(`Cache HIT for ${sign.name} ${timeframe}`);
+      return res.status(200).json({
+        horoscope: cachedEntry.horoscope,
         cached: true,
-        strategy: 'single-cached'
+        generatedAt: new Date(cachedEntry.timestamp).toISOString()
       });
     }
 
-    // If ANY of the three are missing or invalid, generate ALL THREE
-    console.log(`Generating all three horoscopes for ${sign.name} (one or more missing/expired)`);
+    console.log(`Cache MISS for ${sign.name} ${timeframe} - generating new`);
 
-    // Format today's date for the prompt
-    const today = new Date().toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('GEMINI_API_KEY not configured');
+      throw new Error('API key not configured');
+    }
+
+    // Generate horoscope with retry logic
+    const horoscopeText = await retryWithBackoff(async () => {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash-exp",
+        generationConfig: {
+          maxOutputTokens: 4096,
+          temperature: 0.9,
+        }
+      });
+
+      const currentDate = new Date();
+      const dateStr = currentDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+
+      let timeframePrompt = '';
+      let timeframeContext = '';
+
+      if (timeframe === 'daily') {
+        timeframeContext = `Today is ${dateStr}.`;
+        timeframePrompt = `Generate a daily horoscope for ${sign.name} for today (${dateStr}).`;
+      } else if (timeframe === 'weekly') {
+        const weekStart = new Date(currentDate);
+        const weekEnd = new Date(currentDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        timeframeContext = `This week runs from ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}.`;
+        timeframePrompt = `Generate a weekly horoscope for ${sign.name} for this week.`;
+      } else if (timeframe === 'monthly') {
+        const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        timeframeContext = `This month is ${monthName}.`;
+        timeframePrompt = `Generate a monthly horoscope for ${sign.name} for ${monthName}.`;
+      }
+
+      const prompt = `${timeframePrompt}
+
+${timeframeContext}
+
+This horoscope is specifically for INVENTORS and ENTREPRENEURS who are:
+- Developing new products and technologies
+- Filing patents and protecting intellectual property
+- Seeking funding and partnerships
+- Building innovative businesses
+- Navigating R&D challenges
+
+Focus on:
+- Innovation and product development opportunities
+- Patent filing and IP protection timing
+- Commercialization and funding prospects  
+- Strategic business decisions
+- R&D breakthroughs and challenges
+- Partnership and collaboration opportunities
+- Timing for key business actions
+
+Include specific sections with headers:
+**Innovation & Product Development**
+**Patent & IP Protection**
+**Commercialization & Funding**
+**Strategic Planning**
+**Inventor's Personal Growth**
+
+CRITICAL INSTRUCTIONS:
+1. Be realistic and balanced - include BOTH opportunities AND challenges
+2. NEVER be overly optimistic - inventors face real obstacles
+3. Include specific challenges they might encounter
+4. Give actionable advice for handling difficulties
+5. Mention timing for decisions (e.g., "early this week", "mid-month")
+6. Keep the overall message constructive but honest
+
+Make it feel like helpful cosmic guidance specifically tailored for inventors, not generic horoscope advice. Be authentic, realistic, and valuable.`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    }, 3, 2000); // 3 retries, starting with 2 second delay
+
+    // Cache the result
+    cache.set(cacheKey, {
+      horoscope: horoscopeText,
+      timestamp: Date.now()
     });
 
-    const prompts = {
-      daily: {
-        content: `You are generating a daily INVENTOR'S horoscope for ${sign.name} (${sign.dates}) for ${today}.
-
-This horoscope is for inventors, entrepreneurs, and innovators. Focus on invention, patents, intellectual property, creativity, and innovation themes.
-
-CRITICAL CONSISTENCY REQUIREMENTS:
-1. This daily horoscope is DAY 1 of a larger story that will continue in weekly and monthly horoscopes
-2. Introduce 1-2 main events/opportunities that will develop throughout the week and month
-3. Introduce ONE technical challenge that starts small today but will escalate (mention it briefly as a minor issue or warning sign)
-4. Use specific language like "Today" or "${today}" to make the timeframe clear
-5. Foreshadow: Include phrases like "this will develop throughout the week" or "address this now before it compounds"
-
-IMPORTANT: Include BOTH opportunities AND challenges. Be realistic - mention potential obstacles, warnings, or things to avoid. Not everything should be positive!
-
-NARRATIVE STRUCTURE - Introduce these elements:
-- ONE main business opportunity (licensing inquiry, partnership possibility, investor interest) - describe its ARRIVAL today
-- ONE technical/creative challenge (minor inconsistency, small problem, warning sign) - just a hint, not a crisis yet
-- Reference to how today's events will unfold over time
-
-CRITICAL: You MUST use this EXACT format with headers on separate lines:
-
-**Innovation & Creativity:**
-Write 2-3 sentences. Introduce a creative opportunity or breakthrough moment. Then mention a SMALL creative challenge or perfectionism tendency that surfaces today (this will grow in weekly/monthly). Balance opportunity with minor warning.
-
-**Business & Commercialization:**
-Write 2-3 sentences. Introduce ONE specific business opportunity that emerges TODAY (e.g., "A licensing inquiry arrives via email" or "An unexpected partnership possibility surfaces"). This should be something that will develop throughout the week. Include advice to prepare thoroughly before engaging. Naturally mention consulting https://patentwerks.ai for patent guidance or https://ipservices.us for IP services before taking action.
-
-**Mindset & Strategy:**
-Write 2-3 sentences about today's strategic approach. Reference the ${sign.name} zodiac sign's core personality traits (research them!). Include a warning about a typical ${sign.name} weakness that might surface today (e.g., Taurus: stubbornness, Gemini: scattered focus, etc.).
-
-**Cosmic Guidance for Inventors:**
-Write 1-2 sentences of mystical advice - include both what to embrace today AND what to avoid. End with forward-looking hint: "What starts today unfolds throughout the week."
-
-**Lucky Elements:**
-Generate exactly 2 lucky numbers (these will be the FOUNDATION numbers that also appear in weekly and monthly)
-Generate exactly 1 lucky color (this will be the CORE color that also appears in weekly and monthly)
-
-Format:
-Lucky Numbers: [number], [number]
-Lucky Color: [specific color name that matches ${sign.name}'s element - Fire: reds/oranges, Earth: greens/browns, Air: yellows/blues, Water: blues/purples]
-
-DO NOT write this as a flowing paragraph. Each section header MUST be on its own line followed by the content on the next line. Use a blank line between each section.
-
-Make it mystical, realistic, balanced between positive and cautionary, and authentic. Include specific warnings or challenges. 150-200 words total.`
-      },
-      weekly: {
-        content: `You are generating a weekly INVENTOR'S horoscope for ${sign.name} (${sign.dates}) for the week starting ${today}.
-
-This horoscope is for inventors, entrepreneurs, and innovators. Focus on invention, patents, intellectual property, R&D, prototyping, and commercialization themes.
-
-CRITICAL CONSISTENCY REQUIREMENTS:
-1. This weekly horoscope continues the story from the DAILY horoscope (the first day of this week)
-2. Reference events from "early in the week" or "from ${today}" as if they were introduced in the daily
-3. Show PROGRESSION: The business opportunity from day 1 develops throughout the week
-4. Show ESCALATION: The minor technical issue from day 1 becomes clearer and more serious
-5. Include SPECIFIC DAY REFERENCES: Monday, Wednesday, Friday with different energies
-6. Build toward monthly themes: hint that what happens this week is part of a larger pattern
-
-IMPORTANT: Include BOTH opportunities AND challenges throughout the week. Be realistic - mention potential setbacks, warnings about timing, obstacles, or things that could go wrong. Balance optimism with caution!
-
-NARRATIVE CONTINUITY - Reference the daily's events:
-- The business opportunity that emerged "early in the week" or "on ${today}" - show it DEVELOPING
-- The technical challenge that was a "minor issue at week's start" - show it becoming MORE CLEAR
-- Use phrases like "that opportunity from early week," "the challenge first noticed on Monday," etc.
-
-CRITICAL: You MUST use this EXACT format with headers on separate lines:
-
-**Week Overview:**
-Write 2-3 sentences. Reference how "the week that began with [opportunity/challenge from daily] unfolds with both progress and obstacles." Include both favorable conditions AND specific challenges. Mention that events from early week develop by mid-week.
-
-**Innovation & R&D:**
-Write 3-4 sentences. Reference the technical challenge from daily (e.g., "that minor inconsistency from early week becomes clearer"). Show it escalating from mild to moderate. Describe how it requires iteration or adjustment. Balance setbacks with breakthroughs - by Friday there's progress despite the challenges.
-
-**Patent & IP Strategy:**
-Write 3-4 sentences. Connect to the business opportunity from daily - now that discussions are advancing, IP protection becomes more urgent. Include warnings about deadlines or documentation gaps. Mention timing being fortunate for addressing these NOW before they become bigger problems. Naturally mention consulting experts at https://patentwerks.ai for patent strategy or https://ipservices.us for comprehensive IP services, especially before advancing negotiations.
-
-**Commercialization & Partnerships:**
-Write 2-3 sentences. Show the business opportunity from daily PROGRESSING: "The [licensing/partnership] inquiry from early week gains traction by mid-week." Include realistic obstacles: negotiations slower than hoped, potential deals that may fall through, need for patience. End with clarity about which opportunities are viable.
-
-**Inventor's Mindset:**
-Write 2-3 sentences referencing ${sign.name}'s core traits. Acknowledge that mid-week brings moments of doubt when challenges and slow progress collide. Emphasize ${sign.name}'s key strength (persistence, adaptability, etc.) as the solution. Warn about burnout and recommend specific self-care.
-
-**Key Days:**
-List exactly 3 days with specific descriptions (one positive, one challenging, one mixed):
-
-Monday, [Month Day] - [Grounded/productive energy OR reference to continuing daily's momentum]
-Wednesday, [Month Day] - [Communication challenges/obstacles OR technical issues surface more clearly]  
-Friday, [Month Day] - [Strategic clarity/breakthrough OR resolution emerging after overcoming obstacles]
-
-Example format:
-Monday, December 16 - Grounded productivity; ideal for hands-on work continuing from weekend's insights
-Wednesday, December 18 - Communication challenges in negotiations; review all terms meticulously
-Friday, December 20 - Strategic clarity emerges; perfect for refining vision after overcoming week's hurdles
-
-**Weekly Lucky Elements:**
-Generate exactly 4 lucky numbers - MUST INCLUDE the 2 foundation numbers from daily, plus 2 new ones
-Generate exactly 2 lucky colors - MUST INCLUDE the 1 core color from daily, plus 1 new one
-
-Format:
-Numbers: [daily #1], [daily #2], [new #3], [new #4]
-Colors: [daily color], [new complementary color]
-
-Colors should be specific and match ${sign.name}'s element (Fire: reds/oranges/golds, Earth: greens/browns/bronze, Air: yellows/blues/silver, Water: blues/purples/silver)
-
-DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
-
-Make it comprehensive, mystical, balanced between opportunities and realistic challenges, and authentic for inventors. Reference ${sign.name}'s personality throughout. 250-300 words total.`
-      },
-      monthly: {
-        content: `You are generating a comprehensive monthly INVENTOR'S horoscope for ${sign.name} (${sign.dates}) for ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
-
-This horoscope is for inventors, entrepreneurs, patent holders, and innovators. Focus on invention cycles, patent processes, product development, funding, and commercialization.
-
-CRITICAL CONSISTENCY REQUIREMENTS:
-1. This monthly horoscope COMPLETES the story that began in daily and developed in weekly
-2. Reference specific dates - especially mention events from early in the month (around ${today})
-3. Show FULL ARC: Setup (early month) → Crisis (mid-month) → Resolution/Breakthrough (late month)
-4. The business opportunity from early month must face obstacles then reach conclusion
-5. The technical challenge from early month must escalate to major issue then lead to breakthrough
-6. Create REDEMPTIVE ARC: What seems like failure mid-month becomes breakthrough by month's end
-
-IMPORTANT: Include BOTH opportunities AND challenges throughout the month. Be realistic - mention potential major setbacks, difficult periods, funding challenges, patent rejections, or manufacturing issues. Include warnings about timing and what to avoid. Balance optimism with realistic caution!
-
-NARRATIVE COMPLETION - Three-Act Structure:
-ACT 1 (Early Month, Days 1-10): Reference the opportunity/challenge from "${today}" - show initial progress
-ACT 2 (Mid-Month, Days 11-20): The technical issue becomes a MAJOR problem; opportunity faces setbacks
-ACT 3 (Late Month, Days 21-31): Breakthrough emerges; "setback" was actually a blessing in disguise
-
-CRITICAL: You MUST use this EXACT format with headers on separate lines:
-
-**Monthly Overview:**
-Write 3-4 sentences creating a complete story arc for the remainder of ${new Date().toLocaleDateString('en-US', { month: 'long' })} from ${today} onward. The current date is ${today}, so structure the timeline accordingly: "Around ${today}, [describe the opportunity/challenge that's emerging now]. Over the next week (through ${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), this develops into [progression]. Late ${new Date().toLocaleDateString('en-US', { month: 'long' })} (final 10 days) brings [resolution/breakthrough]." Include ${sign.name}'s personality traits in how they navigate this journey. Make it clear this is forward-looking from ${today}.
-
-**Innovation & Product Development:**
-Write 4-5 sentences following this FORWARD-LOOKING timeline from ${today}:
-- STARTING NOW (${today}): Good initial progress on the opportunity/challenge mentioned in overview; note a MINOR technical inconsistency that surfaces today
-- NEXT WEEK (around ${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}): That minor issue from ${today} reveals itself as MAJOR problem - design flaw, compatibility issue, etc. Describe specific consequences: costs increase X%, timeline delays, need for redesign
-- FINAL WEEK OF MONTH (last 7-10 days): The forced pivot creates SUPERIOR solution that's more marketable
-Include warnings about not ignoring the early warning signs from ${today}.
-
-**Patent & IP Protection:**
-Write 4-5 sentences with this FORWARD-LOOKING timeline from ${today}:
-- THIS WEEK (${today} through next few days): Favorable window for filing provisional applications; reference any IP needs created by today's opportunity
-- NEXT 1-2 WEEKS: As technical issues surface, patent claims need revision; office actions may arrive; prior art conflicts possible
-- FINAL WEEK OF MONTH: Revised claims are actually STRONGER than originals; improved solution creates broader protection
-Mention consulting experts at https://patentwerks.ai for patent guidance and https://ipservices.us for comprehensive IP services, especially during the challenging period when design pivots require claim amendments.
-
-**Commercialization & Funding:**
-Write 3-4 sentences showing the business opportunity's journey FROM ${today} FORWARD:
-- STARTING NOW (${today}): The opportunity mentioned in overview develops into substantive discussions this week
-- NEXT 1-2 WEEKS: Technical delays cause skepticism; deals slow or pause; costs increase; potential funding gap
-- FINAL WEEK OF MONTH: Improved solution actually STRENGTHENS the opportunity; partners re-engage with better terms
-Include realistic warnings about funding gaps during the transition period. Make timeline clear: this all happens FROM ${today} onward, not looking backward.
-
-**Strategic Planning:**
-Write 3-4 sentences about competitive landscape and decisions FROM ${today} FORWARD. Warn against impulsive scaling decisions during the challenging period (roughly one week from now). Emphasize focusing on core value proposition before diversifying. A competitor's announcement in coming weeks might actually validate the market or reveal your pivot was strategically essential. Make clear this guidance applies to decisions made FROM ${today} onward.
-
-**Inventor's Personal Growth:**
-Write 3-4 sentences following emotional arc for ${sign.name} FROM ${today} FORWARD:
-- THIS WEEK (starting ${today}): Initial confidence and momentum from new opportunity
-- NEXT 1-2 WEEKS: Mental test as challenges surface; potential imposter syndrome; critical moment of wanting to quit
-- FINAL WEEK OF MONTH: Resilience pays off; personal growth from persevering through struggle
-Reference ${sign.name}'s core strength (Aries: courage, Taurus: persistence, Gemini: adaptability, etc.) as what carries them through. Make timeline explicitly forward-looking from ${today}.
-
-**Key Dates:**
-List exactly 4-5 specific dates spanning FROM ${today} THROUGH END OF MONTH with clear progression:
-
-${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [Today: The opportunity/challenge emerges; this is the STARTING POINT of the monthly journey]
-${new Date(Date.now() + 3*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [3 days from now: Early progress or important development]
-${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [1 week from now: Crisis point - technical issues crystallize OR negotiations face major obstacle]
-${new Date(Date.now() + 14*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [2 weeks from now: Breakthrough moment - solution emerges after struggle]
-${new Date(Date.now() + 21*24*60*60*1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - [3 weeks from now: Resolution - clarity about next steps; strengthened position]
-
-Example format showing progression FROM TODAY FORWARD:
-December 14 - Licensing opportunity emerges today; minor technical inconsistency surfaces
-December 17 - Critical negotiations day; attention to detail required
-December 21 - Technical issues crystallize into design flaw requiring pivot
-December 28 - Breakthrough moment after intense struggle; superior solution emerges
-January 4 - Strategic clarity; relationships that seemed lost actually strengthen
-
-NOTE: All dates should be FUTURE dates from ${today} onward. Do not reference past dates before ${today}.
-
-**Monthly Lucky Elements:**
-Generate exactly 5-7 lucky numbers - MUST INCLUDE all 4 numbers from weekly, plus 1-3 new ones
-Generate exactly 2-3 lucky colors - MUST INCLUDE both colors from weekly, plus optionally 1 new one
-Generate exactly 1 lucky gemstone that matches ${sign.name}'s element and represents transformation/resilience
-
-Format:
-Numbers: [weekly #1], [weekly #2], [weekly #3], [weekly #4], [new #5], [optionally new #6-7]
-Colors: [weekly color 1], [weekly color 2], [optionally new color 3]
-Gemstone: [specific gemstone - Fire: Ruby/Carnelian, Earth: Emerald/Jade, Air: Aquamarine/Citrine, Water: Sapphire/Amethyst]
-
-DO NOT write this as a flowing paragraph. Each section header MUST be on its own line. Use blank lines between sections.
-
-Make it comprehensive, mystical, balanced between opportunities and realistic challenges, and authentic for inventors. Reference ${sign.name}'s personality and journey throughout. Create a complete redemptive narrative arc. 400-450 words total.`
-      }
-    };
-
-    // Helper function to generate a single horoscope
-    const generateSingleHoroscope = async (promptContent, timeframeName) => {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: promptContent
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.9,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 4096,  // Increased to 4096 to prevent cutoffs on weekly/monthly
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(`Gemini API error for ${timeframeName}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          errorData,
-          sign: sign.name,
-          timeframe: timeframeName
-        });
-        throw new Error(`Failed to generate ${timeframeName}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.error(`Unexpected Gemini response for ${timeframeName}:`, data);
-        throw new Error(`Unexpected response for ${timeframeName}`);
-      }
-
-      return data.candidates[0].content.parts
-        .map(part => part.text)
-        .join('\n');
-    };
-
-    // Get API key from environment variable
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({ 
-        error: 'API key not configured. Please add GEMINI_API_KEY to your Vercel environment variables.' 
-      });
-    }
-
-    // Generate ALL THREE horoscopes
-    console.log(`Generating all three horoscopes for ${sign.name}...`);
-    
-    try {
-      // Generate all three in parallel for speed
-      const [dailyText, weeklyText, monthlyText] = await Promise.all([
-        generateSingleHoroscope(prompts.daily.content, 'daily'),
-        generateSingleHoroscope(prompts.weekly.content, 'weekly'),
-        generateSingleHoroscope(prompts.monthly.content, 'monthly')
-      ]);
-
-      // Cache all three horoscopes
-      horoscopeCache.set(cacheKeys.daily, {
-        content: dailyText,
-        timestamp: Date.now()
-      });
-      
-      horoscopeCache.set(cacheKeys.weekly, {
-        content: weeklyText,
-        timestamp: Date.now()
-      });
-      
-      horoscopeCache.set(cacheKeys.monthly, {
-        content: monthlyText,
-        timestamp: Date.now()
-      });
-
-      console.log(`Generated and cached all three horoscopes for ${sign.name}`);
-
-      // Return the requested timeframe
-      const horoscopeTexts = {
-        daily: dailyText,
-        weekly: weeklyText,
-        monthly: monthlyText
-      };
-
-      return res.status(200).json({ 
-        horoscope: horoscopeTexts[timeframe],
-        cached: false,
-        strategy: 'generated-all-three',
-        note: 'All three timeframes now cached for instant access'
-      });
-
-    } catch (error) {
-      // Handle generation errors
-      if (error.message.includes('429') || error.message.includes('Rate limit')) {
-        return res.status(429).json({ 
-          error: 'Rate limit exceeded. Please wait before making more requests.',
-          details: 'Gemini API rate limit (15 requests per minute)'
-        });
-      } else if (error.message.includes('401') || error.message.includes('403')) {
-        return res.status(500).json({ 
-          error: 'API authentication failed',
-          details: 'Check GEMINI_API_KEY environment variable'
-        });
-      } else {
-        throw error; // Re-throw to be caught by outer catch
-      }
-    }
+    return res.status(200).json({
+      horoscope: horoscopeText,
+      cached: false,
+      generatedAt: new Date().toISOString()
+    });
 
   } catch (error) {
-    console.error('Error in horoscope API:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
+    console.error('Error generating horoscope:', error);
+    
+    // Check if it's a 503 error
+    const is503 = error.message?.includes('503') || 
+                  error.message?.includes('overloaded') ||
+                  error.message?.includes('UNAVAILABLE');
+    
+    if (is503) {
+      return res.status(503).json({
+        error: 'Google\'s AI service is temporarily overloaded',
+        details: 'Please try again in a few moments',
+        userMessage: 'The cosmic energies are experiencing high demand. Please try selecting your sign again in a moment! ✨'
+      });
+    }
+    
+    return res.status(500).json({
+      error: 'Failed to generate horoscope',
+      details: error.message
     });
   }
 }
