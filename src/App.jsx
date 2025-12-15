@@ -140,29 +140,6 @@ function App() {
     }
   };
 
-  // Calculate zodiac sign from birthdate
-  const getZodiacSignFromDate = (dateString) => {
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1; // 1-12
-    const day = date.getDate();
-    
-    // Zodiac date ranges
-    if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return zodiacSigns.find(s => s.name === 'Capricorn');
-    if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return zodiacSigns.find(s => s.name === 'Aquarius');
-    if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return zodiacSigns.find(s => s.name === 'Pisces');
-    if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return zodiacSigns.find(s => s.name === 'Aries');
-    if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return zodiacSigns.find(s => s.name === 'Taurus');
-    if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return zodiacSigns.find(s => s.name === 'Gemini');
-    if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return zodiacSigns.find(s => s.name === 'Cancer');
-    if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return zodiacSigns.find(s => s.name === 'Leo');
-    if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return zodiacSigns.find(s => s.name === 'Virgo');
-    if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return zodiacSigns.find(s => s.name === 'Libra');
-    if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return zodiacSigns.find(s => s.name === 'Scorpio');
-    if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return zodiacSigns.find(s => s.name === 'Sagittarius');
-    
-    return null;
-  };
-
   const calculateBiorhythm = () => {
     if (!birthDate) {
       alert('Please enter your birth date');
