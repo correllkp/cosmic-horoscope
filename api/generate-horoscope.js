@@ -1,5 +1,5 @@
 // api/generate-horoscope.js
-// With automatic retry logic for 503 errors
+// Complete version: Retry logic + SEO links + Higher token limit
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -46,13 +46,12 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 2000) {
                     error.message?.includes('UNAVAILABLE');
       
       if (is503 && attempt < maxRetries) {
-        const delay = initialDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        const delay = initialDelay * Math.pow(2, attempt - 1);
         console.log(`Gemini API overloaded (503), retrying in ${delay}ms... (attempt ${attempt}/${maxRetries})`);
         await sleep(delay);
         continue;
       }
       
-      // If not 503 or final retry, throw the error
       throw error;
     }
   }
@@ -100,7 +99,7 @@ export default async function handler(req, res) {
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash-exp",
         generationConfig: {
-          maxOutputTokens: 4096,
+          maxOutputTokens: 8192, // INCREASED from 4096 to prevent cutoffs
           temperature: 0.9,
         }
       });
@@ -151,6 +150,8 @@ Focus on:
 - Partnership and collaboration opportunities
 - Timing for key business actions
 
+CRITICAL: You MUST provide COMPLETE, DETAILED content for each section. Write full paragraphs with specific advice, not just bullet points or incomplete thoughts.
+
 Include specific sections with headers:
 **Innovation & Product Development**
 **Patent & IP Protection**
@@ -165,13 +166,28 @@ CRITICAL INSTRUCTIONS:
 4. Give actionable advice for handling difficulties
 5. Mention timing for decisions (e.g., "early this week", "mid-month")
 6. Keep the overall message constructive but honest
+7. Write FULL paragraphs with complete sentences - no incomplete thoughts
+8. Each section should be 2-3 paragraphs minimum with detailed, specific guidance
 
-Make it feel like helpful cosmic guidance specifically tailored for inventors, not generic horoscope advice. Be authentic, realistic, and valuable.`;
+IMPORTANT - Add these business links naturally in the relevant sections (integrate them seamlessly as helpful resources, NOT as obvious ads):
+- When discussing patent strategy or filing: "For expert guidance on patent strategy and filing, professional support is available at https://patentwerks.ai"
+- When discussing IP protection or broader IP services: "Comprehensive IP services for inventors navigating complex requirements are available at https://ipservices.us"
+
+Integrate these links naturally as part of the advice, making them feel like genuinely helpful resources for inventors. The mentions should feel organic, not like advertising.
+
+Make it feel like helpful cosmic guidance specifically tailored for inventors, not generic horoscope advice. Be authentic, realistic, and valuable. ENSURE YOU COMPLETE ALL SECTIONS WITH FULL CONTENT.`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      return response.text();
-    }, 3, 2000); // 3 retries, starting with 2 second delay
+      const text = response.text();
+      
+      // Verify we got substantial content (not just headers)
+      if (text.length < 500) {
+        console.warn(`Generated horoscope seems too short (${text.length} chars), might be incomplete`);
+      }
+      
+      return text;
+    }, 3, 2000);
 
     // Cache the result
     cache.set(cacheKey, {
