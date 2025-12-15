@@ -88,8 +88,8 @@ function calculateNatalSunSimplified(birthDate) {
   return { sign: 'Aries', degree: '0.0', exactPosition: 'Aries 0.0°' };
 }
 
-// Generate BALANCED astrology + biorhythm context
-function generatePersonalizedContext(natalSun, biorhythm) {
+// Generate BALANCED astrology + biorhythm context (DAILY ONLY)
+function generatePersonalizedContext(natalSun, biorhythm, timeframe) {
   let context = `
 ═══════════════════════════════════════════════
 YOUR PERSONALIZED ASTROLOGICAL PROFILE
@@ -106,7 +106,8 @@ ASTROLOGICAL INSTRUCTIONS:
 4. Provide astrological timing (when transits are exact)
 `;
 
-  if (biorhythm) {
+  // Only include biorhythm for DAILY predictions
+  if (biorhythm && timeframe === 'daily') {
     const getPhase = (value) => {
       if (value > 50) return 'High';
       if (value > 0) return 'Rising';
@@ -116,22 +117,33 @@ ASTROLOGICAL INSTRUCTIONS:
     
     context += `
 ═══════════════════════════════════════════════
-YOUR CURRENT BIORHYTHM CYCLES
+TODAY'S BIORHYTHM CYCLES
 ═══════════════════════════════════════════════
 
 Physical Cycle: ${biorhythm.physical}% (${getPhase(biorhythm.physical)} Phase)
 Emotional Cycle: ${biorhythm.emotional}% (${getPhase(biorhythm.emotional)} Phase)
 Intellectual Cycle: ${biorhythm.intellectual}% (${getPhase(biorhythm.intellectual)} Phase)
 
-BIORHYTHM INSTRUCTIONS:
-1. Use biorhythm for TIMING advice within the astrological predictions
+BIORHYTHM INSTRUCTIONS (DAILY ONLY):
+1. Use biorhythm for TODAY'S specific timing advice
 2. Example: "Saturn delays patent approvals (astrology), but your intellectual 
-   peak Thursday (biorhythm) is ideal for documentation work"
-3. Biorhythm provides the WHEN, astrology provides the WHAT/WHY
-4. Connect biorhythm phases to specific activities:
-   - Physical → prototyping, workshops, physical meetings
-   - Emotional → pitching, networking, partnerships
-   - Intellectual → patent writing, R&D, problem-solving
+   peak TODAY (biorhythm) is ideal for documentation work"
+3. Biorhythm provides timing for TODAY, astrology provides the WHAT/WHY
+4. Connect biorhythm phases to TODAY'S activities:
+   - Physical → prototyping, workshops, physical meetings TODAY
+   - Emotional → pitching, networking, partnerships TODAY
+   - Intellectual → patent writing, R&D, problem-solving TODAY
+`;
+  } else if (timeframe === 'weekly' || timeframe === 'monthly') {
+    context += `
+═══════════════════════════════════════════════
+NOTE: ASTROLOGY FOCUS FOR ${timeframe.toUpperCase()}
+═══════════════════════════════════════════════
+
+For ${timeframe} predictions, focus ONLY on astrological transits.
+Biorhythm cycles change too frequently (23, 28, 33 day cycles) to be 
+meaningful over a ${timeframe} period. User can check their current 
+biorhythm in the display above the horoscope.
 `;
   }
 
@@ -140,21 +152,38 @@ BIORHYTHM INSTRUCTIONS:
 INTEGRATION FRAMEWORK
 ═══════════════════════════════════════════════
 
-For each section, structure your response as:
+${biorhythm && timeframe === 'daily' ? `
+For DAILY predictions, structure your response as:
 
-1. ASTROLOGICAL INFLUENCE (primary):
+1. ASTROLOGICAL INFLUENCE (primary - 70%):
    "Saturn square your natal Sun creates delays in authority matters..."
    
-2. BIORHYTHM TIMING (secondary):
-   "Your intellectual cycle peaks Wednesday (88%), making it the ideal 
-   day to finalize documentation despite Saturn's pressure..."
+2. TODAY'S BIORHYTHM TIMING (secondary - 30%):
+   "Your intellectual cycle peaks TODAY at (88%), making it the ideal 
+   moment to finalize documentation despite Saturn's pressure..."
    
-3. PRACTICAL ADVICE:
-   "Focus on perfecting your patent claims Wednesday when mental 
+3. PRACTICAL ADVICE FOR TODAY:
+   "Focus on perfecting your patent claims TODAY when mental 
    clarity is highest, accepting that approval timing is beyond 
    your control due to Saturn's influence."
 
-BALANCE: 70% astrology (the cosmic forces), 30% biorhythm (the timing)
+BALANCE: 70% astrology (the cosmic forces), 30% biorhythm (today's timing)
+` : `
+For ${timeframe.toUpperCase()} predictions, structure your response as:
+
+1. ASTROLOGICAL TRANSITS (100%):
+   "Saturn square your natal Sun from Dec 15-22 creates delays..."
+   "Jupiter trine your position mid-week brings opportunities..."
+   
+2. TIMING WITHIN THE PERIOD:
+   "This transit peaks December 18th..."
+   "Best days for action are Tuesday and Thursday..."
+   
+3. STRATEGIC ADVICE:
+   Based entirely on astrological timing, not biorhythm.
+   
+FOCUS: Pure astrology - transits, aspects, timing based on planetary movements.
+`}
 `;
 
   return context;
@@ -222,11 +251,13 @@ export default async function handler(req, res) {
     if (birthDate) {
       try {
         natalSun = calculateNatalSunSimplified(birthDate);
-        personalizationContext = generatePersonalizedContext(natalSun, biorhythm);
+        personalizationContext = generatePersonalizedContext(natalSun, biorhythm, timeframe);
         personalized = true;
         console.log(`Natal Sun: ${natalSun.exactPosition}`);
-        if (biorhythm) {
-          console.log(`Biorhythm: P${biorhythm.physical}% E${biorhythm.emotional}% I${biorhythm.intellectual}%`);
+        if (biorhythm && timeframe === 'daily') {
+          console.log(`Biorhythm (daily only): P${biorhythm.physical}% E${biorhythm.emotional}% I${biorhythm.intellectual}%`);
+        } else if (biorhythm) {
+          console.log(`Biorhythm available but not used for ${timeframe} predictions`);
         }
       } catch (error) {
         console.warn('Personalization failed:', error);
@@ -279,41 +310,59 @@ CRITICAL PERSONALIZATION REQUIREMENTS
 
 This is PERSONALIZED to someone with natal Sun at ${natalSun.exactPosition}.
 
-PRIMARY FOCUS (70%): ASTROLOGICAL TRANSITS
+PRIMARY FOCUS: ASTROLOGICAL TRANSITS
 - Reference current planetary transits to their natal Sun
 - Explain what each transit means for innovation/business
 - Provide specific dates when transits are exact
 - Use traditional astrological language and concepts
 
-SECONDARY FOCUS (30%): BIORHYTHM TIMING
-${biorhythm ? `- Use biorhythm cycles for specific day-to-day timing
-- Physical ${biorhythm.physical}%: When to do hands-on work
-- Emotional ${biorhythm.emotional}%: When to pitch/network
-- Intellectual ${biorhythm.intellectual}%: When to do technical work` : ''}
+${timeframe === 'daily' && biorhythm ? `
+SECONDARY FOCUS (DAILY ONLY): TODAY'S BIORHYTHM TIMING
+- Physical ${biorhythm.physical}%: TODAY's energy for hands-on work
+- Emotional ${biorhythm.emotional}%: TODAY's energy for pitching/networking
+- Intellectual ${biorhythm.intellectual}%: TODAY's energy for technical work
 
-EXAMPLE INTEGRATION:
+INTEGRATION EXAMPLE FOR DAILY:
 "Jupiter's trine to your natal Sun at ${natalSun.exactPosition} brings 
-expansion opportunities in funding this week. This beneficial transit 
-peaks December 18th. ${biorhythm ? `Your emotional cycle is also high 
-(${biorhythm.emotional}%), making Tuesday-Wednesday ideal for investor 
-pitches when both cosmic and personal energies align.` : ''}"
+expansion opportunities in funding. With your emotional cycle at ${biorhythm.emotional}% 
+TODAY, this is an ideal moment for investor pitches - both cosmic and 
+personal energies are aligned right now."
+
+BALANCE: 70% astrology (transits), 30% biorhythm (today's timing)
+` : `
+${timeframe === 'weekly' ? `WEEKLY FOCUS: Do NOT reference biorhythm percentages. 
+Biorhythm cycles (23, 28, 33 days) fluctuate too much within a week. 
+Focus on astrological transits and their timing throughout the week.
+
+EXAMPLE:
+"Jupiter's trine to your natal Sun peaks mid-week, making Tuesday-Thursday 
+ideal for investor pitches and partnership discussions."
+` : ''}
+${timeframe === 'monthly' ? `MONTHLY FOCUS: Do NOT reference biorhythm at all.
+Focus entirely on long-term astrological transits and trends.
+
+EXAMPLE:
+"Saturn's square to your natal Sun creates delays in authority matters 
+from December 15-22. After the 22nd, pressure eases and momentum returns."
+` : ''}
+`}
 ` : ''}
 
 Include sections:
 **Innovation & Product Development**
-${personalized ? '(Lead with planetary transits, add biorhythm timing)' : ''}
+${personalized ? (timeframe === 'daily' ? '(Astrological transits + TODAY\'s biorhythm timing)' : '(Astrological transits only)') : ''}
 
 **Patent & IP Protection**
-${personalized ? '(Astrological influences on documentation, biorhythm for best work days)' : ''}
+${personalized ? (timeframe === 'daily' ? '(Astrological influences + TODAY\'s intellectual cycle)' : '(Astrological influences and timing)') : ''}
 
 **Commercialization & Funding**
-${personalized ? '(Transit impacts on resources, biorhythm for networking timing)' : ''}
+${personalized ? (timeframe === 'daily' ? '(Transit impacts + TODAY\'s emotional cycle for pitching)' : '(Transit impacts and best days within period)') : ''}
 
 **Strategic Planning**
-${personalized ? '(Long-term astrological trends, biorhythm for execution timing)' : ''}
+${personalized ? (timeframe === 'daily' ? '(Long-term transits + TODAY\'s cycles for planning work)' : '(Long-term astrological trends and timing)') : ''}
 
 **Inventor's Personal Growth**
-${personalized ? '(Spiritual/growth transits, emotional/intellectual cycles)' : ''}
+${personalized ? (timeframe === 'daily' ? '(Spiritual transits + TODAY\'s emotional/intellectual cycles)' : '(Spiritual/growth transits for the period)') : ''}
 
 Integrate links naturally:
 - Patent: "Professional support at https://patentwerks.ai"
@@ -322,7 +371,19 @@ Integrate links naturally:
 Be realistic and balanced - include challenges and opportunities.
 Each section needs 2-3 full paragraphs.
 
-REMEMBER: Astrology is primary (the WHAT and WHY), biorhythm is secondary (the WHEN and HOW).`;
+${timeframe === 'daily' && biorhythm ? 
+`REMEMBER: For DAILY predictions:
+- Astrology is primary (the WHAT and WHY) - 70%
+- Biorhythm is secondary (TODAY's timing) - 30%
+- Use "TODAY" when referencing biorhythm
+- Example: "Your intellectual cycle is at ${biorhythm.intellectual}% TODAY, perfect for patent work"` :
+`REMEMBER: For ${timeframe.toUpperCase()} predictions:
+- Focus 100% on astrological transits
+- Do NOT reference biorhythm percentages
+- Provide timing based on planetary movements only
+- User can see their current biorhythm in the display above`
+}`;
+
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
