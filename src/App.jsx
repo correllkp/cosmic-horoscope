@@ -97,6 +97,24 @@ function App() {
       // Get birth date from localStorage (for personalization)
       const storedBirthDate = localStorage.getItem('birthDate');
       
+      // Calculate biorhythm if we have birthdate
+      let biorhythmData = null;
+      if (storedBirthDate) {
+        const birth = new Date(storedBirthDate);
+        const today = new Date();
+        const daysSinceBirth = Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+
+        const physical = Math.sin((2 * Math.PI * daysSinceBirth) / 23) * 100;
+        const emotional = Math.sin((2 * Math.PI * daysSinceBirth) / 28) * 100;
+        const intellectual = Math.sin((2 * Math.PI * daysSinceBirth) / 33) * 100;
+
+        biorhythmData = {
+          physical: parseFloat(physical.toFixed(1)),
+          emotional: parseFloat(emotional.toFixed(1)),
+          intellectual: parseFloat(intellectual.toFixed(1))
+        };
+      }
+      
       const response = await fetch('/api/generate-horoscope', {
         method: 'POST',
         headers: {
@@ -105,7 +123,8 @@ function App() {
         body: JSON.stringify({
           sign: sign,
           timeframe: timeframe,
-          birthDate: storedBirthDate || null
+          birthDate: storedBirthDate || null,
+          biorhythm: biorhythmData
         }),
       });
       
@@ -124,6 +143,9 @@ function App() {
       if (data.personalized) {
         console.log('✨ Personalized horoscope generated!');
         console.log('Natal Sun:', data.natalSun);
+        if (biorhythmData) {
+          console.log('Biorhythm cycles sent:', biorhythmData);
+        }
         console.log('Active transits:', data.transits);
       }
       
