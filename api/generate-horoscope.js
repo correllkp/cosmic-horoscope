@@ -1,28 +1,24 @@
 // api/generate-horoscope.js
-// Complete version: Retry logic + SEO links + Higher token limit
+// Option B: Generates all three timeframes together for consistency
+// Includes: Retry logic, SEO links, Higher token limit
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// In-memory cache
+// In-memory cache for complete horoscope sets
 const cache = new Map();
 
-function getCacheKey(signName, timeframe, date) {
-  return `${signName}-${timeframe}-${date}`;
+function getCacheKey(signName, date) {
+  return `${signName}-${date}`;
 }
 
-function isCacheValid(cacheEntry, timeframe) {
+function isCacheValid(cacheEntry) {
   if (!cacheEntry) return false;
   
   const now = Date.now();
   const age = now - cacheEntry.timestamp;
+  const ONE_DAY = 24 * 60 * 60 * 1000;
   
-  const CACHE_DURATION = {
-    daily: 24 * 60 * 60 * 1000,
-    weekly: 7 * 24 * 60 * 60 * 1000,
-    monthly: 30 * 24 * 60 * 60 * 1000
-  };
-  
-  return age < CACHE_DURATION[timeframe];
+  return age < ONE_DAY;
 }
 
 // Helper: Wait for specified milliseconds
@@ -40,7 +36,6 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 2000) {
     } catch (error) {
       lastError = error;
       
-      // Check if it's a 503 (overloaded) error
       const is503 = error.message?.includes('503') || 
                     error.message?.includes('overloaded') ||
                     error.message?.includes('UNAVAILABLE');
@@ -71,21 +66,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Sign information is required' });
     }
 
-    // Check cache
+    // Check cache for complete horoscope set
     const today = new Date().toISOString().split('T')[0];
-    const cacheKey = getCacheKey(sign.name, timeframe, today);
+    const cacheKey = getCacheKey(sign.name, today);
     const cachedEntry = cache.get(cacheKey);
 
-    if (isCacheValid(cachedEntry, timeframe)) {
-      console.log(`Cache HIT for ${sign.name} ${timeframe}`);
+    // If we have valid cached data, return the requested timeframe
+    if (isCacheValid(cachedEntry)) {
+      console.log(`Cache HIT for ${sign.name} - returning ${timeframe}`);
       return res.status(200).json({
-        horoscope: cachedEntry.horoscope,
+        horoscope: cachedEntry.horoscopes[timeframe],
         cached: true,
         generatedAt: new Date(cachedEntry.timestamp).toISOString()
       });
     }
 
-    console.log(`Cache MISS for ${sign.name} ${timeframe} - generating new`);
+    // Cache miss or expired - generate all three together
+    console.log(`Cache MISS for ${sign.name} - generating all three horoscopes together`);
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -93,13 +90,13 @@ export default async function handler(req, res) {
       throw new Error('API key not configured');
     }
 
-    // Generate horoscope with retry logic
-    const horoscopeText = await retryWithBackoff(async () => {
+    // Generate all three horoscopes in one unified request
+    const allHoroscopes = await retryWithBackoff(async () => {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash-exp",
         generationConfig: {
-          maxOutputTokens: 8192, // INCREASED from 4096 to prevent cutoffs
+          maxOutputTokens: 16384, // Even higher for generating 3 at once
           temperature: 0.9,
         }
       });
@@ -112,91 +109,107 @@ export default async function handler(req, res) {
         day: 'numeric' 
       });
 
-      let timeframePrompt = '';
-      let timeframeContext = '';
+      // Week calculation
+      const weekStart = new Date(currentDate);
+      const weekEnd = new Date(currentDate);
+      weekEnd.setDate(weekEnd.getDate() + 6);
 
-      if (timeframe === 'daily') {
-        timeframeContext = `Today is ${dateStr}.`;
-        timeframePrompt = `Generate a daily horoscope for ${sign.name} for today (${dateStr}).`;
-      } else if (timeframe === 'weekly') {
-        const weekStart = new Date(currentDate);
-        const weekEnd = new Date(currentDate);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        timeframeContext = `This week runs from ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}.`;
-        timeframePrompt = `Generate a weekly horoscope for ${sign.name} for this week.`;
-      } else if (timeframe === 'monthly') {
-        const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        timeframeContext = `This month is ${monthName}.`;
-        timeframePrompt = `Generate a monthly horoscope for ${sign.name} for ${monthName}.`;
-      }
+      // Month name
+      const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-      const prompt = `${timeframePrompt}
+      const prompt = `Generate THREE integrated horoscopes for ${sign.name} - daily, weekly, and monthly - that tell a cohesive story. These should be connected predictions where the daily builds into the weekly, and the weekly expands into the monthly themes.
 
-${timeframeContext}
+TODAY'S DATE: ${dateStr}
+THIS WEEK: ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}
+THIS MONTH: ${monthName}
 
-This horoscope is specifically for INVENTORS and ENTREPRENEURS who are:
+These horoscopes are specifically for INVENTORS and ENTREPRENEURS who are:
 - Developing new products and technologies
 - Filing patents and protecting intellectual property
 - Seeking funding and partnerships
 - Building innovative businesses
 - Navigating R&D challenges
 
-Focus on:
-- Innovation and product development opportunities
-- Patent filing and IP protection timing
-- Commercialization and funding prospects  
-- Strategic business decisions
-- R&D breakthroughs and challenges
-- Partnership and collaboration opportunities
-- Timing for key business actions
+CRITICAL: Each horoscope should be COMPLETE with full paragraphs (2-3 paragraphs per section minimum). No empty headers, no incomplete thoughts.
 
-CRITICAL: You MUST provide COMPLETE, DETAILED content for each section. Write full paragraphs with specific advice, not just bullet points or incomplete thoughts.
-
-Include specific sections with headers:
+For EACH timeframe, include these sections:
 **Innovation & Product Development**
 **Patent & IP Protection**
 **Commercialization & Funding**
 **Strategic Planning**
 **Inventor's Personal Growth**
 
-CRITICAL INSTRUCTIONS:
+IMPORTANT - Naturally integrate these business links in the Patent & IP sections:
+- When discussing patent strategy: "For expert guidance on patent strategy and filing, professional support is available at https://patentwerks.ai"
+- When discussing IP services: "Comprehensive IP services for inventors are available at https://ipservices.us"
+
+INTEGRATION REQUIREMENTS:
+1. Daily should introduce immediate themes and actions
+2. Weekly should expand on daily themes and introduce mid-range strategy
+3. Monthly should encompass both and provide big-picture guidance
+4. All three should reference the same core cosmic energies
+5. Timing should be specific: "today", "this week", "this month"
+6. Challenges mentioned in daily should connect to solutions in weekly/monthly
+
+CONTENT REQUIREMENTS:
 1. Be realistic and balanced - include BOTH opportunities AND challenges
 2. NEVER be overly optimistic - inventors face real obstacles
-3. Include specific challenges they might encounter
-4. Give actionable advice for handling difficulties
-5. Mention timing for decisions (e.g., "early this week", "mid-month")
-6. Keep the overall message constructive but honest
-7. Write FULL paragraphs with complete sentences - no incomplete thoughts
-8. Each section should be 2-3 paragraphs minimum with detailed, specific guidance
+3. Give actionable advice with specific timing
+4. Each section needs 2-3 FULL paragraphs with complete sentences
+5. Write detailed, specific guidance - not vague generalizations
 
-IMPORTANT - Add these business links naturally in the relevant sections (integrate them seamlessly as helpful resources, NOT as obvious ads):
-- When discussing patent strategy or filing: "For expert guidance on patent strategy and filing, professional support is available at https://patentwerks.ai"
-- When discussing IP protection or broader IP services: "Comprehensive IP services for inventors navigating complex requirements are available at https://ipservices.us"
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 
-Integrate these links naturally as part of the advice, making them feel like genuinely helpful resources for inventors. The mentions should feel organic, not like advertising.
+===DAILY===
+[Complete daily horoscope with all sections and full content]
 
-Make it feel like helpful cosmic guidance specifically tailored for inventors, not generic horoscope advice. Be authentic, realistic, and valuable. ENSURE YOU COMPLETE ALL SECTIONS WITH FULL CONTENT.`;
+===WEEKLY===
+[Complete weekly horoscope with all sections and full content]
+
+===MONTHLY===
+[Complete monthly horoscope with all sections and full content]
+
+Make sure each horoscope is complete, detailed, and integrated with the others. ENSURE ALL SECTIONS HAVE FULL CONTENT.`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
-      
-      // Verify we got substantial content (not just headers)
-      if (text.length < 500) {
-        console.warn(`Generated horoscope seems too short (${text.length} chars), might be incomplete`);
+      const fullText = response.text();
+
+      // Parse the three horoscopes
+      const dailyMatch = fullText.match(/===DAILY===([\s\S]*?)(?:===WEEKLY===|$)/);
+      const weeklyMatch = fullText.match(/===WEEKLY===([\s\S]*?)(?:===MONTHLY===|$)/);
+      const monthlyMatch = fullText.match(/===MONTHLY===([\s\S]*?)$/);
+
+      if (!dailyMatch || !weeklyMatch || !monthlyMatch) {
+        console.error('Failed to parse horoscopes - format not matched');
+        throw new Error('AI response format error');
       }
-      
-      return text;
+
+      return {
+        daily: dailyMatch[1].trim(),
+        weekly: weeklyMatch[1].trim(),
+        monthly: monthlyMatch[1].trim()
+      };
     }, 3, 2000);
 
-    // Cache the result
+    // Validate we got substantial content
+    Object.entries(allHoroscopes).forEach(([timeframe, text]) => {
+      if (text.length < 500) {
+        console.warn(`${timeframe} horoscope seems too short (${text.length} chars)`);
+      }
+    });
+
+    // Cache the complete set
     cache.set(cacheKey, {
-      horoscope: horoscopeText,
+      horoscopes: allHoroscopes,
       timestamp: Date.now()
     });
 
+    console.log(`Successfully generated and cached all three horoscopes for ${sign.name}`);
+
+    // Return the requested timeframe
     return res.status(200).json({
-      horoscope: horoscopeText,
+      horoscope: allHoroscopes[timeframe],
       cached: false,
       generatedAt: new Date().toISOString()
     });
@@ -204,7 +217,6 @@ Make it feel like helpful cosmic guidance specifically tailored for inventors, n
   } catch (error) {
     console.error('Error generating horoscope:', error);
     
-    // Check if it's a 503 error
     const is503 = error.message?.includes('503') || 
                   error.message?.includes('overloaded') ||
                   error.message?.includes('UNAVAILABLE');
