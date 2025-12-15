@@ -33,9 +33,7 @@ function App() {
   // Calculate zodiac sign from birthdate
   const getZodiacSignFromDate = (dateString) => {
     // Parse date string directly to avoid timezone issues
-    // Date format from input is YYYY-MM-DD
     const parts = dateString.split('-');
-    const year = parseInt(parts[0]);
     const month = parseInt(parts[1]); // 1-12
     const day = parseInt(parts[2]);
     
@@ -58,12 +56,8 @@ function App() {
 
   // Format date for display without timezone issues
   const formatBirthDate = (dateString) => {
-    // Date format from input is YYYY-MM-DD
     const parts = dateString.split('-');
-    const year = parts[0];
-    const month = parts[1];
-    const day = parts[2];
-    return `${month}/${day}/${year}`;
+    return `${parts[1]}/${parts[2]}/${parts[0]}`;
   };
 
   // Load birthdate from localStorage on mount
@@ -213,72 +207,120 @@ function App() {
           </p>
         </header>
 
-        {/* Biorhythm Calculator */}
-        <div className="max-w-md mx-auto mb-12 bg-purple-800 bg-opacity-30 rounded-lg p-6 border border-purple-500">
-          <h2 className="text-2xl font-bold text-purple-300 mb-4 text-center">
-            📊 Biorhythm Calculator
-          </h2>
+        {/* Personalized Astrology & Biorhythm */}
+        <div className="max-w-md mx-auto mb-12 bg-gradient-to-br from-purple-800 to-indigo-800 bg-opacity-40 rounded-lg p-6 border border-purple-400 shadow-lg">
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold text-yellow-300 mb-2">
+              ✨ Personalized Astrology ✨
+            </h2>
+            <p className="text-purple-200 text-sm">
+              Enter your birth date to unlock predictions personalized to YOUR birth chart, 
+              not just your zodiac sign
+            </p>
+          </div>
+
+          <div className="bg-purple-900 bg-opacity-50 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3 mb-3">
+              <span className="text-2xl">🎯</span>
+              <div>
+                <p className="text-yellow-300 font-semibold text-sm">What You Get:</p>
+                <ul className="text-purple-200 text-xs mt-1 space-y-1">
+                  <li>• Auto-selected zodiac sign (no guessing)</li>
+                  <li>• Natal Sun position calculated</li>
+                  <li>• Predictions based on YOUR birth chart</li>
+                  <li>• Personal biorhythm cycles</li>
+                  <li>• Specific timing for YOUR cosmic influences</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <div className="mb-4">
-            <label className="block text-purple-300 text-sm mb-2">
-              Enter Your Birth Date:
+            <label className="block text-purple-300 text-sm font-semibold mb-2">
+              Your Birth Date:
             </label>
             <input
               type="date"
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-purple-700 text-white border border-purple-500 focus:outline-none focus:border-purple-400"
+              className="w-full px-4 py-2 rounded-lg bg-purple-700 text-white border border-purple-500 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400"
             />
           </div>
+
           <button
             onClick={calculateBiorhythm}
-            className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+            className="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-pink-500 text-purple-900 font-bold rounded-lg hover:from-yellow-400 hover:to-pink-400 transition-all shadow-md"
           >
-            Calculate Biorhythm
+            🚀 Unlock Personalized Astrology
           </button>
 
           {biorhythm && (
-            <div className="mt-6 space-y-3">
-              <div className="bg-red-900 bg-opacity-30 rounded-lg p-3 border border-red-500">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-red-300 font-semibold">Physical</span>
-                  <span className="text-red-200 text-sm">{getPhaseDescription(biorhythm.physical)}</span>
-                </div>
-                <div className="w-full bg-red-900 rounded-full h-2">
-                  <div
-                    className="bg-red-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.abs(biorhythm.physical)}%` }}
-                  ></div>
-                </div>
-                <p className="text-red-200 text-xs mt-1">{biorhythm.physical}%</p>
+            <div className="mt-6">
+              <div className="bg-purple-900 bg-opacity-50 rounded-lg p-3 mb-4">
+                <p className="text-yellow-300 text-center font-semibold text-sm">
+                  ✅ Personalized Astrology Activated!
+                </p>
+                <p className="text-purple-200 text-center text-xs mt-1">
+                  Your zodiac sign and natal chart have been calculated
+                </p>
               </div>
 
-              <div className="bg-blue-900 bg-opacity-30 rounded-lg p-3 border border-blue-500">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-blue-300 font-semibold">Emotional</span>
-                  <span className="text-blue-200 text-sm">{getPhaseDescription(biorhythm.emotional)}</span>
+              <h3 className="text-lg font-bold text-purple-300 mb-3 text-center">
+                📊 Your Personal Biorhythm Cycles
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="bg-red-900 bg-opacity-30 rounded-lg p-3 border border-red-500">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-red-300 font-semibold">Physical</span>
+                    <span className="text-red-200 text-sm">{getPhaseDescription(biorhythm.physical)}</span>
+                  </div>
+                  <div className="w-full bg-red-900 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.abs(biorhythm.physical)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-red-200 text-xs mt-1">{biorhythm.physical}%</p>
                 </div>
-                <div className="w-full bg-blue-900 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.abs(biorhythm.emotional)}%` }}
-                  ></div>
-                </div>
-                <p className="text-blue-200 text-xs mt-1">{biorhythm.emotional}%</p>
-              </div>
 
-              <div className="bg-green-900 bg-opacity-30 rounded-lg p-3 border border-green-500">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-green-300 font-semibold">Intellectual</span>
-                  <span className="text-green-200 text-sm">{getPhaseDescription(biorhythm.intellectual)}</span>
+                <div className="bg-blue-900 bg-opacity-30 rounded-lg p-3 border border-blue-500">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-blue-300 font-semibold">Emotional</span>
+                    <span className="text-blue-200 text-sm">{getPhaseDescription(biorhythm.emotional)}</span>
+                  </div>
+                  <div className="w-full bg-blue-900 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.abs(biorhythm.emotional)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-blue-200 text-xs mt-1">{biorhythm.emotional}%</p>
                 </div>
-                <div className="w-full bg-green-900 rounded-full h-2">
-                  <div
-                    className="bg-green-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.abs(biorhythm.intellectual)}%` }}
-                  ></div>
+
+                <div className="bg-green-900 bg-opacity-30 rounded-lg p-3 border border-green-500">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-green-300 font-semibold">Intellectual</span>
+                    <span className="text-green-200 text-sm">{getPhaseDescription(biorhythm.intellectual)}</span>
+                  </div>
+                  <div className="w-full bg-green-900 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.abs(biorhythm.intellectual)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-green-200 text-xs mt-1">{biorhythm.intellectual}%</p>
                 </div>
-                <p className="text-green-200 text-xs mt-1">{biorhythm.intellectual}%</p>
               </div>
+            </div>
+          )}
+
+          {!birthDate && (
+            <div className="mt-4 text-center">
+              <p className="text-purple-300 text-xs">
+                💡 Don't have your exact birth date? You can still use regular horoscopes below, 
+                but personalized predictions are much more accurate!
+              </p>
             </div>
           )}
         </div>
