@@ -32,9 +32,12 @@ function App() {
 
   // Calculate zodiac sign from birthdate
   const getZodiacSignFromDate = (dateString) => {
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1; // 1-12
-    const day = date.getDate();
+    // Parse date string directly to avoid timezone issues
+    // Date format from input is YYYY-MM-DD
+    const parts = dateString.split('-');
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]); // 1-12
+    const day = parseInt(parts[2]);
     
     // Zodiac date ranges
     if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return zodiacSigns.find(s => s.name === 'Capricorn');
@@ -51,6 +54,16 @@ function App() {
     if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return zodiacSigns.find(s => s.name === 'Sagittarius');
     
     return null;
+  };
+
+  // Format date for display without timezone issues
+  const formatBirthDate = (dateString) => {
+    // Date format from input is YYYY-MM-DD
+    const parts = dateString.split('-');
+    const year = parts[0];
+    const month = parts[1];
+    const day = parts[2];
+    return `${month}/${day}/${year}`;
   };
 
   // Load birthdate from localStorage on mount
@@ -284,7 +297,7 @@ function App() {
                   <span className="text-2xl">🔒</span>
                   <div>
                     <p className="text-yellow-300 font-semibold text-sm">
-                      Your sign: {selectedSign.name} (based on birthdate {new Date(birthDate).toLocaleDateString()})
+                      Your sign: {selectedSign.name} (based on birthdate {formatBirthDate(birthDate)})
                     </p>
                     <p className="text-yellow-200 text-xs mt-1">
                       Other signs are locked for personalized readings. Clear your birthdate to explore other signs.

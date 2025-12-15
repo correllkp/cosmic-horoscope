@@ -21,9 +21,12 @@ function isCacheValid(cacheEntry) {
 
 // Simplified: Calculate approximate Sun sign and degree from birth date
 function calculateNatalSunSimplified(birthDate) {
-  const date = new Date(birthDate);
-  const month = date.getMonth() + 1; // 1-12
-  const day = date.getDate();
+  // Parse date string directly to avoid timezone issues
+  // Date format is YYYY-MM-DD
+  const parts = birthDate.split('-');
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]); // 1-12
+  const day = parseInt(parts[2]);
   
   // Zodiac sign date ranges with approximate degrees
   const zodiacRanges = [
