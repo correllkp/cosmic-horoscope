@@ -1,10 +1,136 @@
-// api/generate-horoscope-simple-personalized.js
-// Personalized astrology WITHOUT astronomy-engine library
-// Uses simplified date-based Sun position calculation
+// api/generate-horoscope-advanced.js
+// Enhanced with Rosicrucian astrology concepts
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const cache = new Map();
+
+// Critical Degrees by sign type
+const CRITICAL_DEGREES = {
+  cardinal: [1, 13, 26], // Aries, Cancer, Libra, Capricorn
+  fixed: [9, 21],        // Taurus, Leo, Scorpio, Aquarius
+  common: [4, 17]        // Gemini, Virgo, Sagittarius, Pisces
+};
+
+// Sign classifications
+const SIGN_QUALITIES = {
+  cardinal: ['Aries', 'Cancer', 'Libra', 'Capricorn'],
+  fixed: ['Taurus', 'Leo', 'Scorpio', 'Aquarius'],
+  common: ['Gemini', 'Virgo', 'Sagittarius', 'Pisces']
+};
+
+// Essential Dignities for Sun
+const SUN_DIGNITIES = {
+  exalted: 'Aries',    // Strongest
+  ruling: 'Leo',       // Very strong
+  detriment: 'Aquarius', // Challenged
+  fall: 'Libra'        // Weakest
+};
+
+// Check if degree is critical
+function isCriticalDegree(sign, degree) {
+  const quality = Object.keys(SIGN_QUALITIES).find(q => 
+    SIGN_QUALITIES[q].includes(sign)
+  );
+  
+  if (!quality) return false;
+  
+  const criticalDegs = CRITICAL_DEGREES[quality];
+  const degreeInt = Math.floor(degree);
+  
+  return criticalDegs.some(cd => Math.abs(cd - degreeInt) <= 2);
+}
+
+// Get Sun's essential dignity
+function getSunDignity(sign) {
+  if (sign === SUN_DIGNITIES.exalted) return 'exalted';
+  if (sign === SUN_DIGNITIES.ruling) return 'ruling';
+  if (sign === SUN_DIGNITIES.detriment) return 'detriment';
+  if (sign === SUN_DIGNITIES.fall) return 'fall';
+  return 'neutral';
+}
+
+// Calculate natal Sun from birth date
+function calculateNatalSun(birthDate) {
+  const parts = birthDate.split('-');
+  const month = parseInt(parts[1]);
+  const day = parseInt(parts[2]);
+  
+  const zodiacRanges = [
+    { sign: 'Capricorn', start: { month: 12, day: 22 }, end: { month: 1, day: 19 } },
+    { sign: 'Aquarius', start: { month: 1, day: 20 }, end: { month: 2, day: 18 } },
+    { sign: 'Pisces', start: { month: 2, day: 19 }, end: { month: 3, day: 20 } },
+    { sign: 'Aries', start: { month: 3, day: 21 }, end: { month: 4, day: 19 } },
+    { sign: 'Taurus', start: { month: 4, day: 20 }, end: { month: 5, day: 20 } },
+    { sign: 'Gemini', start: { month: 5, day: 21 }, end: { month: 6, day: 20 } },
+    { sign: 'Cancer', start: { month: 6, day: 21 }, end: { month: 7, day: 22 } },
+    { sign: 'Leo', start: { month: 7, day: 23 }, end: { month: 8, day: 22 } },
+    { sign: 'Virgo', start: { month: 8, day: 23 }, end: { month: 9, day: 22 } },
+    { sign: 'Libra', start: { month: 9, day: 23 }, end: { month: 10, day: 22 } },
+    { sign: 'Scorpio', start: { month: 10, day: 23 }, end: { month: 11, day: 21 } },
+    { sign: 'Sagittarius', start: { month: 11, day: 22 }, end: { month: 12, day: 21 } },
+  ];
+  
+  for (const range of zodiacRanges) {
+    const inRange = 
+      (month === range.start.month && day >= range.start.day) ||
+      (month === range.end.month && day <= range.end.day) ||
+      (range.start.month < range.end.month && month > range.start.month && month < range.end.month);
+    
+    if (inRange) {
+      let dayOfSign;
+      if (month === range.start.month) {
+        dayOfSign = day - range.start.day + 1;
+      } else {
+        const daysInFirstMonth = 30 - range.start.day;
+        dayOfSign = daysInFirstMonth + day;
+      }
+      
+      const degree = Math.min(29, dayOfSign);
+      
+      // Check if critical degree
+      const isCritical = isCriticalDegree(range.sign, degree);
+      
+      // Get essential dignity
+      const dignity = getSunDignity(range.sign);
+      
+      return {
+        sign: range.sign,
+        degree: degree.toFixed(1),
+        exactPosition: `${range.sign} ${degree.toFixed(1)}°`,
+        isCritical: isCritical,
+        dignity: dignity
+      };
+    }
+  }
+  
+  return null;
+}
+
+// Simple current planetary positions (approximate)
+function getCurrentPlanetaryInfluences() {
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  
+  // Approximate Moon phase
+  const dayOfMonth = today.getDate();
+  let moonPhase;
+  if (dayOfMonth <= 7) moonPhase = 'New Moon';
+  else if (dayOfMonth <= 14) moonPhase = 'First Quarter';
+  else if (dayOfMonth <= 21) moonPhase = 'Full Moon';
+  else moonPhase = 'Last Quarter';
+  
+  // Approximate Mercury retrograde (simplified - would need ephemeris for accuracy)
+  // Mercury goes retrograde ~3 times/year for ~3 weeks
+  const isLateInYear = month >= 11;
+  const mercuryRx = isLateInYear; // Simplified
+  
+  return {
+    moonPhase,
+    mercuryRetrograde: mercuryRx,
+    currentMonth: today.toLocaleDateString('en-US', { month: 'long' })
+  };
+}
 
 function getCacheKey(signName, birthDate, date) {
   const birthKey = birthDate ? `-${birthDate}` : '';
@@ -19,86 +145,6 @@ function isCacheValid(cacheEntry) {
   return age < ONE_DAY;
 }
 
-// Simplified: Calculate approximate Sun sign and degree from birth date
-function calculateNatalSunSimplified(birthDate) {
-  // Parse date string directly to avoid timezone issues
-  // Date format is YYYY-MM-DD
-  const parts = birthDate.split('-');
-  const year = parseInt(parts[0]);
-  const month = parseInt(parts[1]); // 1-12
-  const day = parseInt(parts[2]);
-  
-  // Zodiac sign date ranges with approximate degrees
-  const zodiacRanges = [
-    { sign: 'Capricorn', start: { month: 12, day: 22 }, end: { month: 1, day: 19 }, startDegree: 0 },
-    { sign: 'Aquarius', start: { month: 1, day: 20 }, end: { month: 2, day: 18 }, startDegree: 0 },
-    { sign: 'Pisces', start: { month: 2, day: 19 }, end: { month: 3, day: 20 }, startDegree: 0 },
-    { sign: 'Aries', start: { month: 3, day: 21 }, end: { month: 4, day: 19 }, startDegree: 0 },
-    { sign: 'Taurus', start: { month: 4, day: 20 }, end: { month: 5, day: 20 }, startDegree: 0 },
-    { sign: 'Gemini', start: { month: 5, day: 21 }, end: { month: 6, day: 20 }, startDegree: 0 },
-    { sign: 'Cancer', start: { month: 6, day: 21 }, end: { month: 7, day: 22 }, startDegree: 0 },
-    { sign: 'Leo', start: { month: 7, day: 23 }, end: { month: 8, day: 22 }, startDegree: 0 },
-    { sign: 'Virgo', start: { month: 8, day: 23 }, end: { month: 9, day: 22 }, startDegree: 0 },
-    { sign: 'Libra', start: { month: 9, day: 23 }, end: { month: 10, day: 22 }, startDegree: 0 },
-    { sign: 'Scorpio', start: { month: 10, day: 23 }, end: { month: 11, day: 21 }, startDegree: 0 },
-    { sign: 'Sagittarius', start: { month: 11, day: 22 }, end: { month: 12, day: 21 }, startDegree: 0 },
-  ];
-  
-  // Find which sign the birth date falls into
-  for (const range of zodiacRanges) {
-    const inRange = 
-      (month === range.start.month && day >= range.start.day) ||
-      (month === range.end.month && day <= range.end.day) ||
-      (range.start.month < range.end.month && month > range.start.month && month < range.end.month);
-    
-    if (inRange) {
-      // Approximate degree within sign (0-30)
-      // Calculate day of sign
-      let dayOfSign;
-      if (month === range.start.month) {
-        dayOfSign = day - range.start.day + 1;
-      } else {
-        // Approximate days in first month + days in current month
-        const daysInFirstMonth = (range.start.month === month ? 0 : 30 - range.start.day);
-        dayOfSign = daysInFirstMonth + day;
-      }
-      
-      // Approximate degree (assuming 30 days per sign)
-      const degree = Math.min(29, dayOfSign);
-      
-      return {
-        sign: range.sign,
-        degree: degree.toFixed(1),
-        exactPosition: `${range.sign} ${degree.toFixed(1)}°`
-      };
-    }
-  }
-  
-  // Fallback
-  return {
-    sign: 'Aries',
-    degree: '0.0',
-    exactPosition: 'Aries 0.0°'
-  };
-}
-
-// Generate personalized context without complex astronomy calculations
-function generatePersonalizedContext(natalSun, currentDate) {
-  // Simple: Generate context about their natal Sun position
-  return `
-Your natal Sun is in ${natalSun.exactPosition}. This is YOUR personal cosmic signature.
-
-PERSONALIZATION NOTE:
-This horoscope is personalized to your birth chart. Current planetary transits 
-are affecting YOUR natal Sun position specifically. The predictions below are 
-based on how today's cosmic energies interact with YOUR ${natalSun.sign} Sun.
-
-For example, if you were born early in ${natalSun.sign} (${natalSun.degree}°), 
-current planetary movements will affect you differently than someone born later 
-in the sign.`;
-}
-
-// Helper functions
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -137,7 +183,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Sign information is required' });
     }
 
-    // Check cache
     const today = new Date().toISOString().split('T')[0];
     const cacheKey = getCacheKey(sign.name, birthDate, today);
     const cachedEntry = cache.get(cacheKey);
@@ -153,23 +198,24 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`Cache MISS - generating ${birthDate ? 'PERSONALIZED' : 'generic'} horoscope`);
+    console.log(`Cache MISS - generating horoscope`);
 
-    // Calculate natal Sun if birth date provided
+    // Calculate natal Sun with advanced features
     let natalSun = null;
-    let personalizationContext = '';
     let personalized = false;
     
     if (birthDate) {
       try {
-        natalSun = calculateNatalSunSimplified(birthDate);
-        personalizationContext = generatePersonalizedContext(natalSun, new Date());
+        natalSun = calculateNatalSun(birthDate);
         personalized = true;
-        console.log(`Personalized: Natal Sun at ${natalSun.exactPosition}`);
+        console.log(`Personalized: ${natalSun.exactPosition}, Critical: ${natalSun.isCritical}, Dignity: ${natalSun.dignity}`);
       } catch (error) {
         console.warn('Birth date calculation failed:', error);
       }
     }
+    
+    // Get current planetary influences
+    const currentInfluences = getCurrentPlanetaryInfluences();
 
     // Generate horoscopes
     const allHoroscopes = await retryWithBackoff(async () => {
@@ -190,29 +236,87 @@ export default async function handler(req, res) {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
       });
 
-      const weekStart = new Date(currentDate);
-      const weekEnd = new Date(currentDate);
-      weekEnd.setDate(weekEnd.getDate() + 6);
+      // Build advanced personalization section
+      let advancedContext = '';
+      if (personalized && natalSun) {
+        advancedContext = `
+===ADVANCED ASTROLOGICAL ANALYSIS===
 
-      const monthName = currentDate.toLocaleDateString('en-US', { 
-        month: 'long', year: 'numeric' 
-      });
+NATAL SUN POSITION: ${natalSun.exactPosition}
+
+${natalSun.isCritical ? `
+**CRITICAL DEGREE ALERT!**
+Your natal Sun is at a CRITICAL DEGREE (${natalSun.degree}°). According to Rosicrucian astrology, 
+this amplifies your Sun's power significantly. Critical degrees make planetary influences 3-5x stronger.
+
+For you as an inventor:
+- Innovation breakthroughs are more dramatic
+- Patent filings have stronger cosmic backing
+- Investor presentations carry exceptional impact
+- R&D insights are more profound
+` : ''}
+
+${natalSun.dignity !== 'neutral' ? `
+**ESSENTIAL DIGNITY: ${natalSun.dignity.toUpperCase()}**
+
+${natalSun.dignity === 'exalted' ? `
+Your Sun is EXALTED in ${natalSun.sign}! This is the strongest possible position.
+- Leadership in innovation comes naturally
+- Patent strategies are exceptionally effective
+- Funding opportunities align with your vision
+- Technical problem-solving is at peak capacity
+` : ''}
+
+${natalSun.dignity === 'ruling' ? `
+Your Sun RULES ${natalSun.sign}! This gives exceptional strength.
+- Natural authority in your field
+- Patent applications proceed smoothly
+- Investors recognize your expertise immediately
+- Innovation projects succeed with less resistance
+` : ''}
+
+${natalSun.dignity === 'detriment' ? `
+Your Sun is in DETRIMENT in ${natalSun.sign}. This creates challenges that build strength.
+- Innovation requires extra persistence
+- Patent process may face obstacles (overcome with determination)
+- Collaboration helps offset solo challenges
+- Long-term success through resilience
+` : ''}
+
+${natalSun.dignity === 'fall' ? `
+Your Sun is in FALL in ${natalSun.sign}. This position teaches through adversity.
+- Innovation path requires strategic partnerships
+- Patent protection needs extra diligence
+- Team-based approaches work better than solo efforts
+- Success comes through balancing your vision with others' input
+` : ''}
+` : ''}
+
+CURRENT COSMIC WEATHER:
+- Moon Phase: ${currentInfluences.moonPhase}
+${currentInfluences.moonPhase === 'New Moon' ? '  → Ideal for starting new projects, filing patents' : ''}
+${currentInfluences.moonPhase === 'First Quarter' ? '  → Building momentum, develop prototypes' : ''}
+${currentInfluences.moonPhase === 'Full Moon' ? '  → Peak visibility, launch products, present to investors' : ''}
+${currentInfluences.moonPhase === 'Last Quarter' ? '  → Review, refine, prepare documentation' : ''}
+
+${currentInfluences.mercuryRetrograde ? `
+- Mercury Retrograde: Communication delays likely
+  → Double-check patent paperwork
+  → Expect investor meeting reschedules
+  → Review (don't submit) contracts
+` : '- Mercury Direct: Clear communication for contracts and patents'}
+
+Use this astrological intelligence to time your innovation activities for maximum success.`;
+      }
 
       const prompt = `Generate THREE integrated horoscopes for ${sign.name}.
 
 TODAY'S DATE: ${dateStr}
-THIS WEEK: ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}
-THIS MONTH: ${monthName}
+CURRENT INFLUENCES: ${currentInfluences.moonPhase} in ${currentInfluences.currentMonth}
 
-${personalized ? personalizationContext : ''}
+${personalized ? advancedContext : 'Generic horoscope based on zodiac sign only.'}
 
 These horoscopes are for INVENTORS and ENTREPRENEURS.
-
-${personalized ? `
-CRITICAL: This is PERSONALIZED to someone born with their Sun at ${natalSun.exactPosition}.
-Reference their specific degree and birth position throughout. Make predictions that 
-acknowledge this is THEIR personal chart, not a generic ${sign.name} prediction.
-` : ''}
 
 Include sections:
 **Innovation & Product Development**
@@ -221,12 +325,15 @@ Include sections:
 **Strategic Planning**
 **Inventor's Personal Growth**
 
+${personalized && natalSun?.isCritical ? 'IMPORTANT: Emphasize that this is a CRITICAL DEGREE power week/month with amplified opportunities.' : ''}
+
+${personalized && natalSun?.dignity === 'exalted' ? 'IMPORTANT: Reference their EXALTED Sun position as giving exceptional advantage in innovation.' : ''}
+
 Integrate links naturally:
 - Patent: "Professional support at https://patentwerks.ai"
 - IP: "Services at https://ipservices.us"
 
 Be realistic and balanced - include challenges and opportunities.
-Each section needs 2-3 full paragraphs.
 
 FORMAT:
 ===DAILY===
@@ -257,14 +364,13 @@ FORMAT:
       };
     }, 3, 2000);
 
-    // Cache the result
     cache.set(cacheKey, {
       horoscopes: allHoroscopes,
       natalSun: natalSun,
       timestamp: Date.now()
     });
 
-    console.log(`Generated ${personalized ? 'PERSONALIZED' : 'generic'} horoscopes`);
+    console.log(`Successfully generated horoscopes`);
 
     return res.status(200).json({
       horoscope: allHoroscopes[timeframe],
