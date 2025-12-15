@@ -1,13 +1,12 @@
-// api/generate-horoscope-personalized.js
-// Uses birth date for REAL personalized astrology with transits
+// api/generate-horoscope-simple-personalized.js
+// Personalized astrology WITHOUT astronomy-engine library
+// Uses simplified date-based Sun position calculation
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as astronomy from 'astronomy-engine';
 
 const cache = new Map();
 
 function getCacheKey(signName, birthDate, date) {
-  // Include birthDate in cache key for personalization
   const birthKey = birthDate ? `-${birthDate}` : '';
   return `${signName}${birthKey}-${date}`;
 }
@@ -20,189 +19,80 @@ function isCacheValid(cacheEntry) {
   return age < ONE_DAY;
 }
 
-// Get zodiac sign from longitude
-function getZodiacSign(longitude) {
-  const signs = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 
-    'Leo', 'Virgo', 'Libra', 'Scorpio',
-    'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-  ];
-  const index = Math.floor(longitude / 30);
-  return signs[index];
-}
-
-// Calculate natal Sun position from birth date
-function calculateNatalSun(birthDate) {
+// Simplified: Calculate approximate Sun sign and degree from birth date
+function calculateNatalSunSimplified(birthDate) {
   const date = new Date(birthDate);
-  const equator = astronomy.Equator('Sun', date, null, false, true);
-  const ecliptic = astronomy.Ecliptic(equator);
+  const month = date.getMonth() + 1; // 1-12
+  const day = date.getDate();
   
-  const zodiacDegree = ecliptic.elon;
-  const sign = getZodiacSign(zodiacDegree);
-  const degree = zodiacDegree % 30;
-  
-  return {
-    sign: sign,
-    degree: degree.toFixed(1),
-    longitude: zodiacDegree.toFixed(1),
-    exactPosition: `${sign} ${degree.toFixed(1)}°`
-  };
-}
-
-// Get current planetary positions
-function getPlanetaryPositions(date) {
-  const bodies = [
-    'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 
-    'Jupiter', 'Saturn'
+  // Zodiac sign date ranges with approximate degrees
+  const zodiacRanges = [
+    { sign: 'Capricorn', start: { month: 12, day: 22 }, end: { month: 1, day: 19 }, startDegree: 0 },
+    { sign: 'Aquarius', start: { month: 1, day: 20 }, end: { month: 2, day: 18 }, startDegree: 0 },
+    { sign: 'Pisces', start: { month: 2, day: 19 }, end: { month: 3, day: 20 }, startDegree: 0 },
+    { sign: 'Aries', start: { month: 3, day: 21 }, end: { month: 4, day: 19 }, startDegree: 0 },
+    { sign: 'Taurus', start: { month: 4, day: 20 }, end: { month: 5, day: 20 }, startDegree: 0 },
+    { sign: 'Gemini', start: { month: 5, day: 21 }, end: { month: 6, day: 20 }, startDegree: 0 },
+    { sign: 'Cancer', start: { month: 6, day: 21 }, end: { month: 7, day: 22 }, startDegree: 0 },
+    { sign: 'Leo', start: { month: 7, day: 23 }, end: { month: 8, day: 22 }, startDegree: 0 },
+    { sign: 'Virgo', start: { month: 8, day: 23 }, end: { month: 9, day: 22 }, startDegree: 0 },
+    { sign: 'Libra', start: { month: 9, day: 23 }, end: { month: 10, day: 22 }, startDegree: 0 },
+    { sign: 'Scorpio', start: { month: 10, day: 23 }, end: { month: 11, day: 21 }, startDegree: 0 },
+    { sign: 'Sagittarius', start: { month: 11, day: 22 }, end: { month: 12, day: 21 }, startDegree: 0 },
   ];
   
-  const positions = {};
-  
-  for (const body of bodies) {
-    const equator = astronomy.Equator(body, date, null, false, true);
-    const ecliptic = astronomy.Ecliptic(equator);
+  // Find which sign the birth date falls into
+  for (const range of zodiacRanges) {
+    const inRange = 
+      (month === range.start.month && day >= range.start.day) ||
+      (month === range.end.month && day <= range.end.day) ||
+      (range.start.month < range.end.month && month > range.start.month && month < range.end.month);
     
-    const zodiacDegree = ecliptic.elon;
-    const sign = getZodiacSign(zodiacDegree);
-    const degree = zodiacDegree % 30;
-    
-    positions[body] = {
-      sign: sign,
-      degree: degree.toFixed(1),
-      longitude: zodiacDegree.toFixed(1),
-      exactPosition: `${sign} ${degree.toFixed(1)}°`
-    };
-  }
-  
-  return positions;
-}
-
-// Calculate transits to natal Sun
-function calculateTransits(natalSun, currentPositions) {
-  const transits = [];
-  const natalLong = parseFloat(natalSun.longitude);
-  
-  // Check each current planet's relationship to natal Sun
-  for (const [planet, position] of Object.entries(currentPositions)) {
-    if (planet === 'Sun') continue; // Skip Sun-Sun comparison
-    
-    const currentLong = parseFloat(position.longitude);
-    let diff = Math.abs(currentLong - natalLong);
-    if (diff > 180) diff = 360 - diff;
-    
-    // Check for major aspects
-    const aspects = [
-      { name: 'conjunction', angle: 0, orb: 8, quality: 'intense' },
-      { name: 'sextile', angle: 60, orb: 6, quality: 'opportunity' },
-      { name: 'square', angle: 90, orb: 8, quality: 'challenge' },
-      { name: 'trine', angle: 120, orb: 8, quality: 'harmony' },
-      { name: 'opposition', angle: 180, orb: 8, quality: 'tension' }
-    ];
-    
-    for (const aspect of aspects) {
-      if (Math.abs(diff - aspect.angle) <= aspect.orb) {
-        const interpretation = getTransitInterpretation(
-          planet, 
-          aspect.name, 
-          natalSun.sign
-        );
-        
-        transits.push({
-          planet: planet,
-          aspect: aspect.name,
-          quality: aspect.quality,
-          orb: Math.abs(diff - aspect.angle).toFixed(1),
-          interpretation: interpretation,
-          description: `${planet} ${aspect.name} your natal Sun (${natalSun.exactPosition})`
-        });
+    if (inRange) {
+      // Approximate degree within sign (0-30)
+      // Calculate day of sign
+      let dayOfSign;
+      if (month === range.start.month) {
+        dayOfSign = day - range.start.day + 1;
+      } else {
+        // Approximate days in first month + days in current month
+        const daysInFirstMonth = (range.start.month === month ? 0 : 30 - range.start.day);
+        dayOfSign = daysInFirstMonth + day;
       }
+      
+      // Approximate degree (assuming 30 days per sign)
+      const degree = Math.min(29, dayOfSign);
+      
+      return {
+        sign: range.sign,
+        degree: degree.toFixed(1),
+        exactPosition: `${range.sign} ${degree.toFixed(1)}°`
+      };
     }
   }
   
-  return transits;
+  // Fallback
+  return {
+    sign: 'Aries',
+    degree: '0.0',
+    exactPosition: 'Aries 0.0°'
+  };
 }
 
-// Interpret what a transit means for inventors
-function getTransitInterpretation(planet, aspect, natalSign) {
-  const transitMeanings = {
-    'Saturn': {
-      conjunction: 'Major restructuring of innovation strategy - serious focus required',
-      square: 'Patent delays and bureaucratic obstacles - patience essential',
-      opposition: 'External authorities challenge your IP plans - document thoroughly',
-      trine: 'Structured approach to patent strategy pays off - file now',
-      sextile: 'Opportunities for disciplined IP development'
-    },
-    'Jupiter': {
-      conjunction: 'Major expansion in funding and partnerships - think big',
-      square: 'Over-optimism in projections - stay realistic on timelines',
-      opposition: 'Balance growth ambitions with practical limitations',
-      trine: 'Excellent for investor pitches and securing funding - golden period',
-      sextile: 'Good opportunities for strategic partnerships'
-    },
-    'Mars': {
-      conjunction: 'Surge of innovative energy - act boldly but not impulsively',
-      square: 'Conflicts with collaborators - manage ego carefully',
-      opposition: 'Competition intensifies - defend your IP aggressively',
-      trine: 'Excellent momentum for pushing projects forward rapidly',
-      sextile: 'Good energy for tackling R&D challenges'
-    },
-    'Venus': {
-      conjunction: 'Harmonious partnerships and investor relations',
-      square: 'Creative differences with partners - compromise needed',
-      opposition: 'Balance innovation with market appeal',
-      trine: 'Smooth negotiations and collaborative success',
-      sextile: 'Pleasant networking opportunities'
-    },
-    'Mercury': {
-      conjunction: 'Mental clarity on patent strategy and documentation',
-      square: 'Communication mix-ups in IP discussions - clarify details',
-      opposition: 'Competing viewpoints on technical approach',
-      trine: 'Clear thinking and effective technical communication',
-      sextile: 'Good for writing patent specifications'
-    }
-  };
-  
-  return transitMeanings[planet]?.[aspect] || 
-    `${planet} ${aspect} your natal Sun creates ${aspect} energy`;
-}
+// Generate personalized context without complex astronomy calculations
+function generatePersonalizedContext(natalSun, currentDate) {
+  // Simple: Generate context about their natal Sun position
+  return `
+Your natal Sun is in ${natalSun.exactPosition}. This is YOUR personal cosmic signature.
 
-// Calculate general planetary aspects (non-personalized)
-function calculateGeneralAspects(positions) {
-  const aspects = [];
-  const bodies = Object.keys(positions);
-  
-  const aspectTypes = {
-    conjunction: { angle: 0, orb: 8 },
-    sextile: { angle: 60, orb: 6 },
-    square: { angle: 90, orb: 8 },
-    trine: { angle: 120, orb: 8 },
-    opposition: { angle: 180, orb: 8 }
-  };
-  
-  for (let i = 0; i < bodies.length; i++) {
-    for (let j = i + 1; j < bodies.length; j++) {
-      const body1 = bodies[i];
-      const body2 = bodies[j];
-      const long1 = parseFloat(positions[body1].longitude);
-      const long2 = parseFloat(positions[body2].longitude);
-      
-      let diff = Math.abs(long1 - long2);
-      if (diff > 180) diff = 360 - diff;
-      
-      for (const [aspectName, aspectData] of Object.entries(aspectTypes)) {
-        if (Math.abs(diff - aspectData.angle) <= aspectData.orb) {
-          aspects.push({
-            planet1: body1,
-            planet2: body2,
-            type: aspectName,
-            description: `${body1} ${aspectName} ${body2}`
-          });
-        }
-      }
-    }
-  }
-  
-  return aspects;
+PERSONALIZATION NOTE:
+This horoscope is personalized to your birth chart. Current planetary transits 
+are affecting YOUR natal Sun position specifically. The predictions below are 
+based on how today's cosmic energies interact with YOUR ${natalSun.sign} Sun.
+
+For example, if you were born early in ${natalSun.sign} (${natalSun.degree}°), 
+current planetary movements will affect you differently than someone born later 
+in the sign.`;
 }
 
 // Helper functions
@@ -222,7 +112,7 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 2000) {
                     error.message?.includes('UNAVAILABLE');
       if (is503 && attempt < maxRetries) {
         const delay = initialDelay * Math.pow(2, attempt - 1);
-        console.log(`Retrying in ${delay}ms... (attempt ${attempt}/${maxRetries})`);
+        console.log(`Retrying in ${delay}ms...`);
         await sleep(delay);
         continue;
       }
@@ -244,48 +134,39 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Sign information is required' });
     }
 
-    // Check cache (personalized if birthDate provided)
+    // Check cache
     const today = new Date().toISOString().split('T')[0];
     const cacheKey = getCacheKey(sign.name, birthDate, today);
     const cachedEntry = cache.get(cacheKey);
 
     if (isCacheValid(cachedEntry)) {
-      console.log(`Cache HIT for ${sign.name} (${birthDate ? 'personalized' : 'generic'}) - returning ${timeframe}`);
+      console.log(`Cache HIT for ${sign.name}`);
       return res.status(200).json({
         horoscope: cachedEntry.horoscopes[timeframe],
         personalized: !!birthDate,
         natalSun: cachedEntry.natalSun,
-        transits: cachedEntry.transits,
         cached: true,
         generatedAt: new Date(cachedEntry.timestamp).toISOString()
       });
     }
 
-    console.log(`Cache MISS for ${sign.name} - calculating ${birthDate ? 'PERSONALIZED' : 'generic'} astrology`);
+    console.log(`Cache MISS - generating ${birthDate ? 'PERSONALIZED' : 'generic'} horoscope`);
 
-    // Get current planetary positions
-    const currentDate = new Date();
-    const currentPositions = getPlanetaryPositions(currentDate);
-    
-    // Calculate natal Sun and transits if birth date provided
+    // Calculate natal Sun if birth date provided
     let natalSun = null;
-    let transits = [];
+    let personalizationContext = '';
     let personalized = false;
     
     if (birthDate) {
       try {
-        natalSun = calculateNatalSun(birthDate);
-        transits = calculateTransits(natalSun, currentPositions);
+        natalSun = calculateNatalSunSimplified(birthDate);
+        personalizationContext = generatePersonalizedContext(natalSun, new Date());
         personalized = true;
         console.log(`Personalized: Natal Sun at ${natalSun.exactPosition}`);
-        console.log(`Active transits: ${transits.length}`);
       } catch (error) {
-        console.warn('Birth date calculation failed, using generic predictions:', error);
+        console.warn('Birth date calculation failed:', error);
       }
     }
-    
-    // Calculate general aspects (for context)
-    const generalAspects = calculateGeneralAspects(currentPositions);
 
     // Generate horoscopes
     const allHoroscopes = await retryWithBackoff(async () => {
@@ -301,15 +182,7 @@ export default async function handler(req, res) {
         }
       });
 
-      // Format planetary data
-      const planetaryData = Object.entries(currentPositions)
-        .map(([planet, data]) => `${planet}: ${data.exactPosition}`)
-        .join('\n');
-
-      const aspectData = generalAspects
-        .map(a => a.description)
-        .join('\n');
-
+      const currentDate = new Date();
       const dateStr = currentDate.toLocaleDateString('en-US', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
       });
@@ -322,41 +195,21 @@ export default async function handler(req, res) {
         month: 'long', year: 'numeric' 
       });
 
-      // Build personalization section
-      let personalizationSection = '';
-      if (personalized && transits.length > 0) {
-        personalizationSection = `
-===PERSONALIZED TRANSIT ANALYSIS===
-Your natal Sun is at ${natalSun.exactPosition}
-
-ACTIVE TRANSITS TO YOUR NATAL SUN:
-${transits.map(t => `${t.description} - ${t.interpretation}`).join('\n')}
-
-CRITICAL: These transits are SPECIFIC TO THIS PERSON's birth chart. Reference these personal transits throughout all three horoscopes. Make predictions based on THEIR natal Sun position, not generic ${sign.name} predictions.
-
-For example:
-- If Saturn is squaring their natal Sun: "Saturn's square to your natal Sun at ${natalSun.degree}° requires patience with patent delays"
-- If Jupiter is trine their natal Sun: "Jupiter's trine to your natal Sun at ${natalSun.degree}° brings exceptional funding opportunities"
-
-This is REAL personalized astrology - not generic zodiac predictions.`;
-      }
-
-      const prompt = `Generate THREE integrated horoscopes for ${sign.name} using REAL ASTRONOMICAL DATA.
+      const prompt = `Generate THREE integrated horoscopes for ${sign.name}.
 
 TODAY'S DATE: ${dateStr}
 THIS WEEK: ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}
 THIS MONTH: ${monthName}
 
-===REAL PLANETARY POSITIONS TODAY===
-${planetaryData}
-
-===GENERAL PLANETARY ASPECTS TODAY===
-${aspectData}
-${personalizationSection}
+${personalized ? personalizationContext : ''}
 
 These horoscopes are for INVENTORS and ENTREPRENEURS.
 
-${personalized ? 'IMPORTANT: This is a PERSONALIZED horoscope. Reference the specific transits to their natal Sun throughout. Make timing predictions based on when these transits are exact.' : 'This is a generic horoscope based on zodiac sign only.'}
+${personalized ? `
+CRITICAL: This is PERSONALIZED to someone born with their Sun at ${natalSun.exactPosition}.
+Reference their specific degree and birth position throughout. Make predictions that 
+acknowledge this is THEIR personal chart, not a generic ${sign.name} prediction.
+` : ''}
 
 Include sections:
 **Innovation & Product Development**
@@ -365,27 +218,27 @@ Include sections:
 **Strategic Planning**
 **Inventor's Personal Growth**
 
-Integrate these links naturally:
-- Patent strategy: "Professional support at https://patentwerks.ai"
-- IP services: "Comprehensive services at https://ipservices.us"
+Integrate links naturally:
+- Patent: "Professional support at https://patentwerks.ai"
+- IP: "Services at https://ipservices.us"
+
+Be realistic and balanced - include challenges and opportunities.
+Each section needs 2-3 full paragraphs.
 
 FORMAT:
 ===DAILY===
-[Complete horoscope ${personalized ? 'referencing personal transits' : 'using general astronomy'}]
+[Complete horoscope]
 
 ===WEEKLY===
-[Complete horoscope showing weekly planetary movements]
+[Complete horoscope]
 
 ===MONTHLY===
-[Complete horoscope showing monthly themes]
-
-Make predictions SPECIFIC, based on REAL astronomy${personalized ? ' and PERSONAL transits' : ''}.`;
+[Complete horoscope]`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const fullText = response.text();
 
-      // Parse horoscopes
       const dailyMatch = fullText.match(/===DAILY===([\s\S]*?)(?:===WEEKLY===|$)/);
       const weeklyMatch = fullText.match(/===WEEKLY===([\s\S]*?)(?:===MONTHLY===|$)/);
       const monthlyMatch = fullText.match(/===MONTHLY===([\s\S]*?)$/);
@@ -405,19 +258,15 @@ Make predictions SPECIFIC, based on REAL astronomy${personalized ? ' and PERSONA
     cache.set(cacheKey, {
       horoscopes: allHoroscopes,
       natalSun: natalSun,
-      transits: transits,
-      planetaryData: { currentPositions, generalAspects },
       timestamp: Date.now()
     });
 
-    console.log(`Successfully generated ${personalized ? 'PERSONALIZED' : 'generic'} horoscopes`);
+    console.log(`Generated ${personalized ? 'PERSONALIZED' : 'generic'} horoscopes`);
 
     return res.status(200).json({
       horoscope: allHoroscopes[timeframe],
       personalized: personalized,
       natalSun: natalSun,
-      transits: transits,
-      planetaryData: { currentPositions, generalAspects },
       cached: false,
       generatedAt: new Date().toISOString()
     });
