@@ -1,61 +1,77 @@
-// api/generate-horoscope-advanced.js
-// Enhanced with Rosicrucian astrology concepts
+// api/generate-horoscope-FIXED-CACHE.js
+// Fixed caching logic - each timeframe has appropriate duration
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const cache = new Map();
 
-// Critical Degrees by sign type
-const CRITICAL_DEGREES = {
-  cardinal: [1, 13, 26], // Aries, Cancer, Libra, Capricorn
-  fixed: [9, 21],        // Taurus, Leo, Scorpio, Aquarius
-  common: [4, 17]        // Gemini, Virgo, Sagittarius, Pisces
-};
-
-// Sign classifications
-const SIGN_QUALITIES = {
-  cardinal: ['Aries', 'Cancer', 'Libra', 'Capricorn'],
-  fixed: ['Taurus', 'Leo', 'Scorpio', 'Aquarius'],
-  common: ['Gemini', 'Virgo', 'Sagittarius', 'Pisces']
-};
-
-// Essential Dignities for Sun
-const SUN_DIGNITIES = {
-  exalted: 'Aries',    // Strongest
-  ruling: 'Leo',       // Very strong
-  detriment: 'Aquarius', // Challenged
-  fall: 'Libra'        // Weakest
-};
-
-// Check if degree is critical
-function isCriticalDegree(sign, degree) {
-  const quality = Object.keys(SIGN_QUALITIES).find(q => 
-    SIGN_QUALITIES[q].includes(sign)
-  );
+// Get the appropriate date key based on timeframe
+function getTimeframeDate(timeframe) {
+  const now = new Date();
   
-  if (!quality) return false;
-  
-  const criticalDegs = CRITICAL_DEGREES[quality];
-  const degreeInt = Math.floor(degree);
-  
-  return criticalDegs.some(cd => Math.abs(cd - degreeInt) <= 2);
+  switch(timeframe) {
+    case 'daily':
+      // Cache daily horoscopes per day
+      return now.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+    case 'weekly':
+      // Cache weekly horoscopes per week (Monday-Sunday)
+      const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); // Get last Monday
+      return `week-${monday.toISOString().split('T')[0]}`; // week-YYYY-MM-DD
+      
+    case 'monthly':
+      // Cache monthly horoscopes per month
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+      
+    default:
+      return now.toISOString().split('T')[0];
+  }
 }
 
-// Get Sun's essential dignity
-function getSunDignity(sign) {
-  if (sign === SUN_DIGNITIES.exalted) return 'exalted';
-  if (sign === SUN_DIGNITIES.ruling) return 'ruling';
-  if (sign === SUN_DIGNITIES.detriment) return 'detriment';
-  if (sign === SUN_DIGNITIES.fall) return 'fall';
-  return 'neutral';
+// Generate cache key with timeframe-appropriate dating
+function getCacheKey(signName, birthDate, timeframe) {
+  const birthKey = birthDate ? `-${birthDate}` : '';
+  const dateKey = getTimeframeDate(timeframe);
+  return `${signName}${birthKey}-${timeframe}-${dateKey}`;
 }
 
-// Calculate natal Sun from birth date
-function calculateNatalSun(birthDate) {
+// Check if cache entry is still valid for its timeframe
+function isCacheValid(cacheEntry, timeframe) {
+  if (!cacheEntry) return false;
+  
+  const now = Date.now();
+  const age = now - cacheEntry.timestamp;
+  
+  // Set expiration based on timeframe
+  let maxAge;
+  switch(timeframe) {
+    case 'daily':
+      maxAge = 24 * 60 * 60 * 1000; // 24 hours
+      break;
+    case 'weekly':
+      maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+      break;
+    case 'monthly':
+      maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      break;
+    default:
+      maxAge = 24 * 60 * 60 * 1000;
+  }
+  
+  return age < maxAge;
+}
+
+// Simplified: Calculate approximate Sun sign and degree from birth date
+function calculateNatalSunSimplified(birthDate) {
+  // Parse date string directly to avoid timezone issues
   const parts = birthDate.split('-');
-  const month = parseInt(parts[1]);
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]); // 1-12
   const day = parseInt(parts[2]);
   
+  // Zodiac sign date ranges
   const zodiacRanges = [
     { sign: 'Capricorn', start: { month: 12, day: 22 }, end: { month: 1, day: 19 } },
     { sign: 'Aquarius', start: { month: 1, day: 20 }, end: { month: 2, day: 18 } },
@@ -82,67 +98,34 @@ function calculateNatalSun(birthDate) {
       if (month === range.start.month) {
         dayOfSign = day - range.start.day + 1;
       } else {
-        const daysInFirstMonth = 30 - range.start.day;
+        const daysInFirstMonth = (range.start.month === month ? 0 : 30 - range.start.day);
         dayOfSign = daysInFirstMonth + day;
       }
       
       const degree = Math.min(29, dayOfSign);
       
-      // Check if critical degree
-      const isCritical = isCriticalDegree(range.sign, degree);
-      
-      // Get essential dignity
-      const dignity = getSunDignity(range.sign);
-      
       return {
         sign: range.sign,
         degree: degree.toFixed(1),
-        exactPosition: `${range.sign} ${degree.toFixed(1)}°`,
-        isCritical: isCritical,
-        dignity: dignity
+        exactPosition: `${range.sign} ${degree.toFixed(1)}°`
       };
     }
   }
   
-  return null;
-}
-
-// Simple current planetary positions (approximate)
-function getCurrentPlanetaryInfluences() {
-  const today = new Date();
-  const month = today.getMonth() + 1;
-  
-  // Approximate Moon phase
-  const dayOfMonth = today.getDate();
-  let moonPhase;
-  if (dayOfMonth <= 7) moonPhase = 'New Moon';
-  else if (dayOfMonth <= 14) moonPhase = 'First Quarter';
-  else if (dayOfMonth <= 21) moonPhase = 'Full Moon';
-  else moonPhase = 'Last Quarter';
-  
-  // Approximate Mercury retrograde (simplified - would need ephemeris for accuracy)
-  // Mercury goes retrograde ~3 times/year for ~3 weeks
-  const isLateInYear = month >= 11;
-  const mercuryRx = isLateInYear; // Simplified
-  
   return {
-    moonPhase,
-    mercuryRetrograde: mercuryRx,
-    currentMonth: today.toLocaleDateString('en-US', { month: 'long' })
+    sign: 'Aries',
+    degree: '0.0',
+    exactPosition: 'Aries 0.0°'
   };
 }
 
-function getCacheKey(signName, birthDate, date) {
-  const birthKey = birthDate ? `-${birthDate}` : '';
-  return `${signName}${birthKey}-${date}`;
-}
+function generatePersonalizedContext(natalSun, currentDate) {
+  return `
+Your natal Sun is in ${natalSun.exactPosition}. This is YOUR personal cosmic signature.
 
-function isCacheValid(cacheEntry) {
-  if (!cacheEntry) return false;
-  const now = Date.now();
-  const age = now - cacheEntry.timestamp;
-  const ONE_DAY = 24 * 60 * 60 * 1000;
-  return age < ONE_DAY;
+PERSONALIZATION NOTE:
+This horoscope is personalized to your birth chart. Current planetary transits 
+are affecting YOUR natal Sun position specifically.`;
 }
 
 function sleep(ms) {
@@ -183,42 +166,42 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Sign information is required' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const cacheKey = getCacheKey(sign.name, birthDate, today);
+    // Check cache with timeframe-specific key
+    const cacheKey = getCacheKey(sign.name, birthDate, timeframe);
     const cachedEntry = cache.get(cacheKey);
 
-    if (isCacheValid(cachedEntry)) {
-      console.log(`Cache HIT for ${sign.name}`);
+    if (isCacheValid(cachedEntry, timeframe)) {
+      console.log(`Cache HIT for ${sign.name} ${timeframe} (${birthDate ? 'personalized' : 'generic'})`);
       return res.status(200).json({
-        horoscope: cachedEntry.horoscopes[timeframe],
+        horoscope: cachedEntry.horoscope,
         personalized: !!birthDate,
         natalSun: cachedEntry.natalSun,
         cached: true,
+        cacheKey: cacheKey, // For debugging
         generatedAt: new Date(cachedEntry.timestamp).toISOString()
       });
     }
 
-    console.log(`Cache MISS - generating horoscope`);
+    console.log(`Cache MISS for ${sign.name} ${timeframe} - generating ${birthDate ? 'PERSONALIZED' : 'generic'}`);
 
-    // Calculate natal Sun with advanced features
+    // Calculate natal Sun if birth date provided
     let natalSun = null;
+    let personalizationContext = '';
     let personalized = false;
     
     if (birthDate) {
       try {
-        natalSun = calculateNatalSun(birthDate);
+        natalSun = calculateNatalSunSimplified(birthDate);
+        personalizationContext = generatePersonalizedContext(natalSun, new Date());
         personalized = true;
-        console.log(`Personalized: ${natalSun.exactPosition}, Critical: ${natalSun.isCritical}, Dignity: ${natalSun.dignity}`);
+        console.log(`Personalized: Natal Sun at ${natalSun.exactPosition}`);
       } catch (error) {
         console.warn('Birth date calculation failed:', error);
       }
     }
-    
-    // Get current planetary influences
-    const currentInfluences = getCurrentPlanetaryInfluences();
 
-    // Generate horoscopes
-    const allHoroscopes = await retryWithBackoff(async () => {
+    // Generate horoscope for THIS specific timeframe
+    const horoscope = await retryWithBackoff(async () => {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error('API key not configured');
 
@@ -226,97 +209,38 @@ export default async function handler(req, res) {
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash-exp",
         generationConfig: {
-          maxOutputTokens: 16384,
+          maxOutputTokens: 8192,
           temperature: 0.9,
         }
       });
 
       const currentDate = new Date();
-      const dateStr = currentDate.toLocaleDateString('en-US', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-      });
-
-      // Build advanced personalization section
-      let advancedContext = '';
-      if (personalized && natalSun) {
-        advancedContext = `
-===ADVANCED ASTROLOGICAL ANALYSIS===
-
-NATAL SUN POSITION: ${natalSun.exactPosition}
-
-${natalSun.isCritical ? `
-**CRITICAL DEGREE ALERT!**
-Your natal Sun is at a CRITICAL DEGREE (${natalSun.degree}°). According to Rosicrucian astrology, 
-this amplifies your Sun's power significantly. Critical degrees make planetary influences 3-5x stronger.
-
-For you as an inventor:
-- Innovation breakthroughs are more dramatic
-- Patent filings have stronger cosmic backing
-- Investor presentations carry exceptional impact
-- R&D insights are more profound
-` : ''}
-
-${natalSun.dignity !== 'neutral' ? `
-**ESSENTIAL DIGNITY: ${natalSun.dignity.toUpperCase()}**
-
-${natalSun.dignity === 'exalted' ? `
-Your Sun is EXALTED in ${natalSun.sign}! This is the strongest possible position.
-- Leadership in innovation comes naturally
-- Patent strategies are exceptionally effective
-- Funding opportunities align with your vision
-- Technical problem-solving is at peak capacity
-` : ''}
-
-${natalSun.dignity === 'ruling' ? `
-Your Sun RULES ${natalSun.sign}! This gives exceptional strength.
-- Natural authority in your field
-- Patent applications proceed smoothly
-- Investors recognize your expertise immediately
-- Innovation projects succeed with less resistance
-` : ''}
-
-${natalSun.dignity === 'detriment' ? `
-Your Sun is in DETRIMENT in ${natalSun.sign}. This creates challenges that build strength.
-- Innovation requires extra persistence
-- Patent process may face obstacles (overcome with determination)
-- Collaboration helps offset solo challenges
-- Long-term success through resilience
-` : ''}
-
-${natalSun.dignity === 'fall' ? `
-Your Sun is in FALL in ${natalSun.sign}. This position teaches through adversity.
-- Innovation path requires strategic partnerships
-- Patent protection needs extra diligence
-- Team-based approaches work better than solo efforts
-- Success comes through balancing your vision with others' input
-` : ''}
-` : ''}
-
-CURRENT COSMIC WEATHER:
-- Moon Phase: ${currentInfluences.moonPhase}
-${currentInfluences.moonPhase === 'New Moon' ? '  → Ideal for starting new projects, filing patents' : ''}
-${currentInfluences.moonPhase === 'First Quarter' ? '  → Building momentum, develop prototypes' : ''}
-${currentInfluences.moonPhase === 'Full Moon' ? '  → Peak visibility, launch products, present to investors' : ''}
-${currentInfluences.moonPhase === 'Last Quarter' ? '  → Review, refine, prepare documentation' : ''}
-
-${currentInfluences.mercuryRetrograde ? `
-- Mercury Retrograde: Communication delays likely
-  → Double-check patent paperwork
-  → Expect investor meeting reschedules
-  → Review (don't submit) contracts
-` : '- Mercury Direct: Clear communication for contracts and patents'}
-
-Use this astrological intelligence to time your innovation activities for maximum success.`;
+      let dateContext = '';
+      
+      if (timeframe === 'daily') {
+        dateContext = currentDate.toLocaleDateString('en-US', { 
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+      } else if (timeframe === 'weekly') {
+        const weekStart = new Date(currentDate);
+        const weekEnd = new Date(currentDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        dateContext = `Week of ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}`;
+      } else {
+        dateContext = currentDate.toLocaleDateString('en-US', { 
+          month: 'long', year: 'numeric' 
+        });
       }
 
-      const prompt = `Generate THREE integrated horoscopes for ${sign.name}.
+      const prompt = `Generate a ${timeframe} horoscope for ${sign.name}.
 
-TODAY'S DATE: ${dateStr}
-CURRENT INFLUENCES: ${currentInfluences.moonPhase} in ${currentInfluences.currentMonth}
+DATE: ${dateContext}
 
-${personalized ? advancedContext : 'Generic horoscope based on zodiac sign only.'}
+${personalized ? personalizationContext : ''}
 
-These horoscopes are for INVENTORS and ENTREPRENEURS.
+This horoscope is for INVENTORS and ENTREPRENEURS.
+
+${personalized ? `IMPORTANT: This is PERSONALIZED to someone with natal Sun at ${natalSun.exactPosition}. Reference their specific degree and birth position.` : ''}
 
 Include sections:
 **Innovation & Product Development**
@@ -325,58 +249,34 @@ Include sections:
 **Strategic Planning**
 **Inventor's Personal Growth**
 
-${personalized && natalSun?.isCritical ? 'IMPORTANT: Emphasize that this is a CRITICAL DEGREE power week/month with amplified opportunities.' : ''}
-
-${personalized && natalSun?.dignity === 'exalted' ? 'IMPORTANT: Reference their EXALTED Sun position as giving exceptional advantage in innovation.' : ''}
-
 Integrate links naturally:
 - Patent: "Professional support at https://patentwerks.ai"
 - IP: "Services at https://ipservices.us"
 
 Be realistic and balanced - include challenges and opportunities.
-
-FORMAT:
-===DAILY===
-[Complete horoscope]
-
-===WEEKLY===
-[Complete horoscope]
-
-===MONTHLY===
-[Complete horoscope]`;
+Each section needs 2-3 full paragraphs.`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const fullText = response.text();
-
-      const dailyMatch = fullText.match(/===DAILY===([\s\S]*?)(?:===WEEKLY===|$)/);
-      const weeklyMatch = fullText.match(/===WEEKLY===([\s\S]*?)(?:===MONTHLY===|$)/);
-      const monthlyMatch = fullText.match(/===MONTHLY===([\s\S]*?)$/);
-
-      if (!dailyMatch || !weeklyMatch || !monthlyMatch) {
-        throw new Error('AI response format error');
-      }
-
-      return {
-        daily: dailyMatch[1].trim(),
-        weekly: weeklyMatch[1].trim(),
-        monthly: monthlyMatch[1].trim()
-      };
+      return response.text();
     }, 3, 2000);
 
+    // Cache THIS specific timeframe's horoscope
     cache.set(cacheKey, {
-      horoscopes: allHoroscopes,
+      horoscope: horoscope,
       natalSun: natalSun,
       timestamp: Date.now()
     });
 
-    console.log(`Successfully generated horoscopes`);
+    console.log(`Generated ${personalized ? 'PERSONALIZED' : 'generic'} ${timeframe} horoscope`);
+    console.log(`Cache key: ${cacheKey}`);
 
     return res.status(200).json({
-      horoscope: allHoroscopes[timeframe],
+      horoscope: horoscope,
       personalized: personalized,
       natalSun: natalSun,
       cached: false,
+      cacheKey: cacheKey, // For debugging
       generatedAt: new Date().toISOString()
     });
 
