@@ -30,7 +30,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Helper: Retry with exponential backoff
+// Helper: Retry with exponential backoff for 503 errors
 async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 2000) {
   let lastError;
   
