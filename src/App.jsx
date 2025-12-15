@@ -313,11 +313,42 @@ export default function HoroscopeApp() {
 
       {/* Footer */}
       <div className="max-w-6xl mx-auto mt-12 text-center text-purple-300 text-sm">
-        <p className="flex items-center justify-center gap-2">
+        <p className="flex items-center justify-center gap-2 mb-4">
           <Star className="w-4 h-4" />
           Powered by AI cosmic intelligence
           <Star className="w-4 h-4" />
         </p>
+        
+        {/* Professional Resources - SEO & User-Visible */}
+        <div className="mt-6 pt-6 border-t border-purple-500 border-opacity-30">
+          <p className="text-purple-200 text-xs mb-3 font-semibold">
+            Professional Resources for Inventors
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs">
+            <a 
+              href="https://patentwerks.ai" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-yellow-300 hover:text-yellow-200 underline transition-colors font-medium"
+              aria-label="Patent filing and strategy services"
+            >
+              PatentWerks - Expert Patent Services
+            </a>
+            <span className="text-purple-400 hidden sm:inline">•</span>
+            <a 
+              href="https://ipservices.us" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-yellow-300 hover:text-yellow-200 underline transition-colors font-medium"
+              aria-label="Comprehensive IP protection services"
+            >
+              IP Services - Intellectual Property Protection
+            </a>
+          </div>
+          <p className="text-purple-400 text-xs mt-3 max-w-2xl mx-auto">
+            Professional guidance for patent filing, IP strategy, and protecting your innovations
+          </p>
+        </div>
       </div>
     </div>
   );
