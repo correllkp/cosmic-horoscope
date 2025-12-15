@@ -1,65 +1,47 @@
-// api/generate-horoscope-WITH-BIORHYTHM.js
-// Updated API that incorporates biorhythm into predictions
+// api/generate-horoscope-BALANCED.js
+// Properly balances astrology + biorhythm
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const cache = new Map();
 
-// Get the appropriate date key based on timeframe
 function getTimeframeDate(timeframe) {
   const now = new Date();
-  
   switch(timeframe) {
     case 'daily':
       return now.toISOString().split('T')[0];
-      
     case 'weekly':
       const day = now.getDay();
       const monday = new Date(now);
       monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
       return `week-${monday.toISOString().split('T')[0]}`;
-      
     case 'monthly':
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      
     default:
       return now.toISOString().split('T')[0];
   }
 }
 
-// Generate cache key with timeframe-appropriate dating
 function getCacheKey(signName, birthDate, timeframe) {
   const birthKey = birthDate ? `-${birthDate}` : '';
   const dateKey = getTimeframeDate(timeframe);
   return `${signName}${birthKey}-${timeframe}-${dateKey}`;
 }
 
-// Check if cache entry is still valid
 function isCacheValid(cacheEntry, timeframe) {
   if (!cacheEntry) return false;
-  
   const now = Date.now();
   const age = now - cacheEntry.timestamp;
-  
   let maxAge;
   switch(timeframe) {
-    case 'daily':
-      maxAge = 24 * 60 * 60 * 1000;
-      break;
-    case 'weekly':
-      maxAge = 7 * 24 * 60 * 60 * 1000;
-      break;
-    case 'monthly':
-      maxAge = 30 * 24 * 60 * 60 * 1000;
-      break;
-    default:
-      maxAge = 24 * 60 * 60 * 1000;
+    case 'daily': maxAge = 24 * 60 * 60 * 1000; break;
+    case 'weekly': maxAge = 7 * 24 * 60 * 60 * 1000; break;
+    case 'monthly': maxAge = 30 * 24 * 60 * 60 * 1000; break;
+    default: maxAge = 24 * 60 * 60 * 1000;
   }
-  
   return age < maxAge;
 }
 
-// Calculate natal Sun position
 function calculateNatalSunSimplified(birthDate) {
   const parts = birthDate.split('-');
   const month = parseInt(parts[1]);
@@ -91,12 +73,10 @@ function calculateNatalSunSimplified(birthDate) {
       if (month === range.start.month) {
         dayOfSign = day - range.start.day + 1;
       } else {
-        const daysInFirstMonth = (range.start.month === month ? 0 : 30 - range.start.day);
+        const daysInFirstMonth = 30 - range.start.day;
         dayOfSign = daysInFirstMonth + day;
       }
-      
       const degree = Math.min(29, dayOfSign);
-      
       return {
         sign: range.sign,
         degree: degree.toFixed(1),
@@ -105,81 +85,79 @@ function calculateNatalSunSimplified(birthDate) {
     }
   }
   
-  return {
-    sign: 'Aries',
-    degree: '0.0',
-    exactPosition: 'Aries 0.0°'
-  };
+  return { sign: 'Aries', degree: '0.0', exactPosition: 'Aries 0.0°' };
 }
 
-// Generate biorhythm context for AI
-function generateBiorhythmContext(biorhythm) {
-  if (!biorhythm) return '';
-  
-  const { physical, emotional, intellectual } = biorhythm;
-  
-  // Determine phase descriptions
-  const getPhase = (value) => {
-    if (value > 50) return 'High';
-    if (value > 0) return 'Rising';
-    if (value > -50) return 'Declining';
-    return 'Low';
-  };
-  
-  const physicalPhase = getPhase(physical);
-  const emotionalPhase = getPhase(emotional);
-  const intellectualPhase = getPhase(intellectual);
-  
-  // Generate detailed context
-  return `
-CURRENT BIORHYTHM CYCLES:
-
-Physical Cycle: ${physical.toFixed(1)}% (${physicalPhase} Phase)
-${physical > 50 ? '- Peak physical energy and stamina' : 
-  physical > 0 ? '- Building physical energy' :
-  physical > -50 ? '- Declining physical energy, time for rest' :
-  '- Low physical energy, focus on recovery'}
-  
-Emotional Cycle: ${emotional.toFixed(1)}% (${emotionalPhase} Phase)
-${emotional > 50 ? '- Peak emotional sensitivity and creativity' :
-  emotional > 0 ? '- Growing emotional awareness' :
-  emotional > -50 ? '- Declining emotional energy, introspection time' :
-  '- Low emotional energy, process and reflect'}
-
-Intellectual Cycle: ${intellectual.toFixed(1)}% (${intellectualPhase} Phase)
-${intellectual > 50 ? '- Peak mental clarity and problem-solving ability' :
-  intellectual > 0 ? '- Rising cognitive power' :
-  intellectual > -50 ? '- Declining mental energy, review rather than start new' :
-  '- Low mental energy, focus on routine tasks'}
-
-INTEGRATION INSTRUCTIONS:
-- Reference these specific biorhythm phases in your predictions
-- For high physical: Emphasize hands-on work, prototyping, physical meetings
-- For low physical: Suggest planning, strategy, delegation
-- For high emotional: Great for creativity, partnerships, investor pitches
-- For low emotional: Focus on analytical work, avoid emotional decisions
-- For high intellectual: Perfect for patent writing, technical documentation, problem-solving
-- For low intellectual: Review existing work, handle routine tasks
-
-Connect biorhythm to specific inventor activities:
-- Physical → Prototyping, lab work, workshops, trade shows
-- Emotional → Networking, partnerships, team building, pitching
-- Intellectual → Patent applications, technical writing, R&D, problem-solving`;
-}
-
+// Generate BALANCED astrology + biorhythm context
 function generatePersonalizedContext(natalSun, biorhythm) {
   let context = `
-Your natal Sun is in ${natalSun.exactPosition}. This is YOUR personal cosmic signature.`;
+═══════════════════════════════════════════════
+YOUR PERSONALIZED ASTROLOGICAL PROFILE
+═══════════════════════════════════════════════
+
+NATAL CHART:
+Your natal Sun is in ${natalSun.exactPosition}
+This is YOUR personal cosmic signature and the foundation for all transits.
+
+ASTROLOGICAL INSTRUCTIONS:
+1. Primary predictions should be based on CURRENT PLANETARY TRANSITS to this natal Sun position
+2. Reference specific transits (e.g., "Saturn square your natal Sun at ${natalSun.exactPosition}")
+3. Explain what each transit MEANS for inventors/entrepreneurs
+4. Provide astrological timing (when transits are exact)
+`;
 
   if (biorhythm) {
-    context += generateBiorhythmContext(biorhythm);
+    const getPhase = (value) => {
+      if (value > 50) return 'High';
+      if (value > 0) return 'Rising';
+      if (value > -50) return 'Declining';
+      return 'Low';
+    };
+    
+    context += `
+═══════════════════════════════════════════════
+YOUR CURRENT BIORHYTHM CYCLES
+═══════════════════════════════════════════════
+
+Physical Cycle: ${biorhythm.physical}% (${getPhase(biorhythm.physical)} Phase)
+Emotional Cycle: ${biorhythm.emotional}% (${getPhase(biorhythm.emotional)} Phase)
+Intellectual Cycle: ${biorhythm.intellectual}% (${getPhase(biorhythm.intellectual)} Phase)
+
+BIORHYTHM INSTRUCTIONS:
+1. Use biorhythm for TIMING advice within the astrological predictions
+2. Example: "Saturn delays patent approvals (astrology), but your intellectual 
+   peak Thursday (biorhythm) is ideal for documentation work"
+3. Biorhythm provides the WHEN, astrology provides the WHAT/WHY
+4. Connect biorhythm phases to specific activities:
+   - Physical → prototyping, workshops, physical meetings
+   - Emotional → pitching, networking, partnerships
+   - Intellectual → patent writing, R&D, problem-solving
+`;
   }
 
-  return context + `
+  context += `
+═══════════════════════════════════════════════
+INTEGRATION FRAMEWORK
+═══════════════════════════════════════════════
 
-PERSONALIZATION NOTE:
-This horoscope is personalized to your birth chart AND your current biorhythm cycles. 
-Integrate both the astrological transits and biorhythm phases into your predictions.`;
+For each section, structure your response as:
+
+1. ASTROLOGICAL INFLUENCE (primary):
+   "Saturn square your natal Sun creates delays in authority matters..."
+   
+2. BIORHYTHM TIMING (secondary):
+   "Your intellectual cycle peaks Wednesday (88%), making it the ideal 
+   day to finalize documentation despite Saturn's pressure..."
+   
+3. PRACTICAL ADVICE:
+   "Focus on perfecting your patent claims Wednesday when mental 
+   clarity is highest, accepting that approval timing is beyond 
+   your control due to Saturn's influence."
+
+BALANCE: 70% astrology (the cosmic forces), 30% biorhythm (the timing)
+`;
+
+  return context;
 }
 
 function sleep(ms) {
@@ -220,7 +198,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Sign information is required' });
     }
 
-    // Check cache
     const cacheKey = getCacheKey(sign.name, birthDate, timeframe);
     const cachedEntry = cache.get(cacheKey);
 
@@ -236,12 +213,8 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`Cache MISS - generating ${birthDate ? 'PERSONALIZED' : 'generic'} ${timeframe}`);
-    if (biorhythm) {
-      console.log(`Biorhythm: Physical ${biorhythm.physical}%, Emotional ${biorhythm.emotional}%, Intellectual ${biorhythm.intellectual}%`);
-    }
+    console.log(`Cache MISS - generating ${birthDate ? 'PERSONALIZED' : 'generic'}`);
 
-    // Calculate natal Sun if birth date provided
     let natalSun = null;
     let personalizationContext = '';
     let personalized = false;
@@ -252,12 +225,14 @@ export default async function handler(req, res) {
         personalizationContext = generatePersonalizedContext(natalSun, biorhythm);
         personalized = true;
         console.log(`Natal Sun: ${natalSun.exactPosition}`);
+        if (biorhythm) {
+          console.log(`Biorhythm: P${biorhythm.physical}% E${biorhythm.emotional}% I${biorhythm.intellectual}%`);
+        }
       } catch (error) {
-        console.warn('Birth date calculation failed:', error);
+        console.warn('Personalization failed:', error);
       }
     }
 
-    // Generate horoscope
     const horoscopeText = await retryWithBackoff(async () => {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error('API key not configured');
@@ -297,25 +272,48 @@ ${personalized ? personalizationContext : ''}
 
 This horoscope is for INVENTORS and ENTREPRENEURS.
 
-${personalized && natalSun ? `CRITICAL: This is PERSONALIZED to someone with natal Sun at ${natalSun.exactPosition}. Reference their specific degree and birth position.` : ''}
+${personalized && natalSun ? `
+═══════════════════════════════════════════════
+CRITICAL PERSONALIZATION REQUIREMENTS
+═══════════════════════════════════════════════
 
-${biorhythm ? `CRITICAL: Incorporate their CURRENT BIORHYTHM phases into predictions. Reference specific cycles and how they affect innovation activities.` : ''}
+This is PERSONALIZED to someone with natal Sun at ${natalSun.exactPosition}.
+
+PRIMARY FOCUS (70%): ASTROLOGICAL TRANSITS
+- Reference current planetary transits to their natal Sun
+- Explain what each transit means for innovation/business
+- Provide specific dates when transits are exact
+- Use traditional astrological language and concepts
+
+SECONDARY FOCUS (30%): BIORHYTHM TIMING
+${biorhythm ? `- Use biorhythm cycles for specific day-to-day timing
+- Physical ${biorhythm.physical}%: When to do hands-on work
+- Emotional ${biorhythm.emotional}%: When to pitch/network
+- Intellectual ${biorhythm.intellectual}%: When to do technical work` : ''}
+
+EXAMPLE INTEGRATION:
+"Jupiter's trine to your natal Sun at ${natalSun.exactPosition} brings 
+expansion opportunities in funding this week. This beneficial transit 
+peaks December 18th. ${biorhythm ? `Your emotional cycle is also high 
+(${biorhythm.emotional}%), making Tuesday-Wednesday ideal for investor 
+pitches when both cosmic and personal energies align.` : ''}"
+` : ''}
 
 Include sections:
 **Innovation & Product Development**
-${biorhythm ? '(Reference physical and intellectual cycles)' : ''}
+${personalized ? '(Lead with planetary transits, add biorhythm timing)' : ''}
 
 **Patent & IP Protection**
-${biorhythm ? '(Reference intellectual cycle for documentation)' : ''}
+${personalized ? '(Astrological influences on documentation, biorhythm for best work days)' : ''}
 
 **Commercialization & Funding**
-${biorhythm ? '(Reference emotional cycle for pitching/networking)' : ''}
+${personalized ? '(Transit impacts on resources, biorhythm for networking timing)' : ''}
 
 **Strategic Planning**
-${biorhythm ? '(Integrate all three cycles for timing advice)' : ''}
+${personalized ? '(Long-term astrological trends, biorhythm for execution timing)' : ''}
 
 **Inventor's Personal Growth**
-${biorhythm ? '(Reference emotional and intellectual cycles)' : ''}
+${personalized ? '(Spiritual/growth transits, emotional/intellectual cycles)' : ''}
 
 Integrate links naturally:
 - Patent: "Professional support at https://patentwerks.ai"
@@ -324,26 +322,18 @@ Integrate links naturally:
 Be realistic and balanced - include challenges and opportunities.
 Each section needs 2-3 full paragraphs.
 
-${biorhythm ? `
-BIORHYTHM INTEGRATION EXAMPLES:
-- "With your intellectual cycle at its peak (${biorhythm.intellectual}%), this is the ideal time for patent documentation..."
-- "Your physical cycle is in a declining phase (${biorhythm.physical}%), suggesting delegation of hands-on work..."
-- "High emotional energy (${biorhythm.emotional}%) supports successful investor pitches and partnership negotiations..."
-` : ''}`;
+REMEMBER: Astrology is primary (the WHAT and WHY), biorhythm is secondary (the WHEN and HOW).`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
     }, 3, 2000);
 
-    // Cache the result
     cache.set(cacheKey, {
       horoscope: horoscopeText,
       natalSun: natalSun,
       timestamp: Date.now()
     });
-
-    console.log(`Generated ${personalized ? 'PERSONALIZED' : 'generic'} horoscope with ${biorhythm ? 'BIORHYTHM' : 'no biorhythm'}`);
 
     return res.status(200).json({
       horoscope: horoscopeText,
