@@ -303,6 +303,25 @@ ${personalized ? personalizationContext : ''}
 
 This horoscope is for INVENTORS and ENTREPRENEURS.
 
+CRITICAL VOICE AND TONE REQUIREMENTS:
+1. State astrological transits CONFIDENTLY - never use disclaimers like:
+   - "I can't calculate the exact positions"
+   - "Without ephemeris data"
+   - "Let's assume for illustrative purposes"
+   - "I don't have access to"
+2. Simply state transits as facts: "Saturn square your natal Sun creates..."
+3. Be authoritative and certain in your astrological interpretations
+
+${timeframe === 'weekly' || timeframe === 'monthly' ? `
+TIMING REQUIREMENTS FOR ${timeframe.toUpperCase()}:
+- When mentioning "best days" or "favorable days," ALWAYS explain WHY astrologically
+- Examples:
+  ✓ "Tuesday and Thursday are favorable when Mercury forms supportive trines to your natal Sun"
+  ✓ "Wednesday's Moon-Venus conjunction makes it ideal for partnership discussions"
+  ✗ "Tuesday and Thursday look favorable" (too vague - explain why!)
+- Base timing recommendations on specific planetary aspects, not generic statements
+` : ''}
+
 ${personalized && natalSun ? `
 ═══════════════════════════════════════════════
 CRITICAL PERSONALIZATION REQUIREMENTS
@@ -334,16 +353,21 @@ ${timeframe === 'weekly' ? `WEEKLY FOCUS: Do NOT reference biorhythm percentages
 Biorhythm cycles (23, 28, 33 days) fluctuate too much within a week. 
 Focus on astrological transits and their timing throughout the week.
 
-EXAMPLE:
-"Jupiter's trine to your natal Sun peaks mid-week, making Tuesday-Thursday 
-ideal for investor pitches and partnership discussions."
+EXAMPLE TIMING:
+"Tuesday and Thursday are most favorable when Mercury forms trines to your 
+natal Sun, supporting clear communication with patent examiners."
+
+REQUIREMENT: Always explain WHY specific days are favorable (which planets, which aspects).
 ` : ''}
 ${timeframe === 'monthly' ? `MONTHLY FOCUS: Do NOT reference biorhythm at all.
 Focus entirely on long-term astrological transits and trends.
 
-EXAMPLE:
+EXAMPLE TIMING:
 "Saturn's square to your natal Sun creates delays in authority matters 
-from December 15-22. After the 22nd, pressure eases and momentum returns."
+from December 15-22. After the 22nd, pressure eases and momentum returns 
+as Jupiter forms a supportive trine December 24-31."
+
+REQUIREMENT: Provide specific date ranges for each transit phase.
 ` : ''}
 `}
 ` : ''}
@@ -372,15 +396,18 @@ Be realistic and balanced - include challenges and opportunities.
 Each section needs 2-3 full paragraphs.
 
 ${timeframe === 'daily' && biorhythm ? 
-`REMEMBER: For DAILY predictions:
+`REMEMBER FOR DAILY:
+- State transits confidently (no "I can't calculate" disclaimers)
 - Astrology is primary (the WHAT and WHY) - 70%
 - Biorhythm is secondary (TODAY's timing) - 30%
 - Use "TODAY" when referencing biorhythm
 - Example: "Your intellectual cycle is at ${biorhythm.intellectual}% TODAY, perfect for patent work"` :
-`REMEMBER: For ${timeframe.toUpperCase()} predictions:
+`REMEMBER FOR ${timeframe.toUpperCase()}:
+- State transits confidently (no disclaimers about data or calculations)
 - Focus 100% on astrological transits
 - Do NOT reference biorhythm percentages
-- Provide timing based on planetary movements only
+- When mentioning favorable days, explain WHY with specific aspects
+- Example: "Tuesday is favorable when Mercury trines your natal Sun, supporting communication"
 - User can see their current biorhythm in the display above`
 }`;
 
