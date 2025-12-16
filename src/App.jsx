@@ -220,14 +220,16 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-indigo-900 to-purple-900">
       <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
-            ✨ Cosmic Horoscope ✨
-          </h1>
-          <p className="text-purple-300 text-lg">
-            Discover your cosmic guidance for innovation and success
-          </p>
-        </header>
+<header className="text-center mb-12">
+  <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+    AI-Powered Horoscope for Inventors and Entrepreneurs
+  </h1>
+  <p className="text-purple-300 text-lg flex items-center justify-center gap-2">
+    <span className="text-2xl">✨</span>
+    Cosmic guidance for innovation and success
+    <span className="text-2xl">✨</span>
+  </p>
+</header>
 
         {/* Personalized Astrology & Biorhythm */}
         <div className="max-w-md mx-auto mb-12 bg-gradient-to-br from-purple-800 to-indigo-800 bg-opacity-40 rounded-lg p-6 border border-purple-400 shadow-lg">
